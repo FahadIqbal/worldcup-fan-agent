@@ -3,6 +3,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { UserLocation } from "@/types/location";
+import { getTopPrompts } from "@/lib/quickPrompts";
 
 interface Message {
   id: string;
@@ -12,36 +13,6 @@ interface Message {
   isStreaming?: boolean;
   skillId?: string;
   toolsUsed?: string[];
-}
-
-interface QuickPrompt {
-  icon: string;
-  label: string;
-  prompt: string;
-}
-
-function buildQuickPrompts(loc: UserLocation): QuickPrompt[] {
-  const from = loc.city ? `${loc.city}, ${loc.country}` : "my city";
-  const passport = loc.country ? `${loc.country} passport` : "my passport";
-  const cur = loc.currency || "USD";
-  const threshold =
-    cur === "MYR" ? "MYR 4,000" :
-    cur === "GBP" ? "£700" :
-    cur === "EUR" ? "€800" :
-    cur === "AUD" ? "A$1,400" :
-    cur === "SGD" ? "SGD 1,200" :
-    cur === "JPY" ? "¥130,000" :
-    cur === "INR" ? "₹75,000" :
-    cur === "BRL" ? "R$5,000" :
-    "$900 USD";
-  return [
-    { icon: "✈️", label: "Plan my trip",     prompt: `I want to attend a World Cup 2026 match. I'm in ${from}. Help me plan a complete trip including flights, hotels, and match tickets.` },
-    { icon: "🛬", label: "Visa check",        prompt: `Do I need a visa to enter the USA as a ${passport} holder for the World Cup 2026? What are the entry requirements?` },
-    { icon: "🏨", label: "Find hotels",       prompt: `I'm flying from ${from} to a World Cup 2026 match. Find me mid-range hotels near the stadium.` },
-    { icon: "🔔", label: "Price alert",       prompt: `Set a price alert for flights from ${from} to a World Cup 2026 venue city. Alert me when the price drops below ${threshold}.` },
-    { icon: "🌤️", label: "Weather & packing", prompt: `What's the weather like in World Cup 2026 host cities in June–July? What should I pack travelling from ${from}?` },
-    { icon: "⚽", label: "Fantasy picks",     prompt: `Give me World Cup 2026 fantasy league advice. Who should I captain this week — Mbappe, Vinicius Jr., or Bellingham?` },
-  ];
 }
 
 const SKILL_LABELS: Record<string, string> = {
@@ -259,7 +230,7 @@ export default function ChatPanel({ userId, userLocation, initialPrompt, onPromp
       {messages.length < 3 && (
         <div style={{ padding: "0 16px 10px", maxWidth: 760, margin: "0 auto", width: "100%" }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {buildQuickPrompts(userLocation).map((qp) => (
+            {getTopPrompts(userLocation).map((qp) => (
               <button key={qp.label} onClick={() => sendMessage(qp.prompt)} disabled={isLoading}
                 style={{
                   padding: "6px 12px", borderRadius: 20, border: "1px solid #1e2d50",
