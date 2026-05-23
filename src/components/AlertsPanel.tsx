@@ -88,19 +88,40 @@ function PriceBar({ current, max, currency }: { current: number | null; max: num
   );
 }
 
-function AddAlertForm({ onAskAgent, onClose }: { onAskAgent: (prompt: string) => void; onClose: () => void }) {
+function AddAlertForm({
+  userId, onClose, onSaved, onAskAgent,
+}: {
+  userId: string;
+  onClose: () => void;
+  onSaved: () => void;
+  onAskAgent?: (prompt: string) => void;
+}) {
   const [origin, setOrigin] = useState("");
   const [dest, setDest] = useState("");
   const [price, setPrice] = useState("");
   const [currency, setCurrency] = useState("USD");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
-  const submit = () => {
+  const submit = async () => {
     if (!origin || !dest || !price) return;
-    onAskAgent(
-      `Set a flight price alert: notify me when flights from ${origin} to ${dest} drop below ${currency} ${price}. ` +
-      `Monitor this route for the World Cup 2026 travel window (June–July 2026).`
-    );
-    onClose();
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, origin, dest, price: Number(price), currency }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      setSaved(true);
+      onSaved();
+      setTimeout(onClose, 1500);
+    } catch {
+      setError("Could not save alert — check your connection.");
+      setSaving(false);
+    }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -108,6 +129,22 @@ function AddAlertForm({ onAskAgent, onClose }: { onAskAgent: (prompt: string) =>
     borderRadius: 8, padding: "8px 10px", color: "#e2e8f0", fontSize: 12,
     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
   };
+
+  if (saved) {
+    return (
+      <div style={{
+        background: "#0a1a12", border: "1px solid #00c89633", borderRadius: 14,
+        padding: "24px 18px", marginBottom: 20, textAlign: "center",
+        animation: "slideDown 0.2s ease",
+      }}>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+        <div style={{ color: "#00c896", fontSize: 13, fontWeight: 600 }}>Alert saved!</div>
+        <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>
+          We&apos;ll notify you when {origin.toUpperCase()} → {dest} drops below {currency} {Number(price).toLocaleString()}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -157,29 +194,49 @@ function AddAlertForm({ onAskAgent, onClose }: { onAskAgent: (prompt: string) =>
         </div>
       </div>
 
+      {error && (
+        <div style={{ color: "#ef4444", fontSize: 11, marginBottom: 8 }}>{error}</div>
+      )}
+
       <div style={{ display: "flex", gap: 8 }}>
         <button
-          onClick={submit} disabled={!origin || !dest || !price}
+          onClick={submit} disabled={saving || !origin || !dest || !price}
           style={{
             flex: 1, padding: "8px", borderRadius: 8, border: "none",
-            background: origin && dest && price ? "linear-gradient(135deg, #00c896, #0ea5e9)" : "#1e2d50",
-            color: "#fff", fontSize: 12, cursor: origin && dest && price ? "pointer" : "not-allowed",
+            background: !saving && origin && dest && price ? "linear-gradient(135deg, #00c896, #0ea5e9)" : "#1e2d50",
+            color: "#fff", fontSize: 12,
+            cursor: !saving && origin && dest && price ? "pointer" : "not-allowed",
             fontFamily: "inherit", fontWeight: 600,
           }}
         >
-          Set alert via agent →
+          {saving ? "Saving…" : "Set Alert →"}
         </button>
         <button
-          onClick={onClose}
+          onClick={onClose} disabled={saving}
           style={{
             padding: "8px 14px", borderRadius: 8, border: "1px solid #1e2d50",
             background: "transparent", color: "#64748b", fontSize: 12,
-            cursor: "pointer", fontFamily: "inherit",
+            cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit",
           }}
         >
           Cancel
         </button>
       </div>
+
+      {onAskAgent && origin && dest && price && (
+        <button
+          onClick={() => onAskAgent(
+            `Check current flight prices from ${origin} to ${dest} for the World Cup 2026 travel window (June–July 2026). My target budget is ${currency} ${price}.`
+          )}
+          style={{
+            width: "100%", padding: "6px", borderRadius: 8, border: "1px solid #0ea5e944",
+            background: "transparent", color: "#0ea5e9", fontSize: 11,
+            cursor: "pointer", fontFamily: "inherit", marginTop: 6,
+          }}
+        >
+          Ask agent for current prices →
+        </button>
+      )}
     </div>
   );
 }
@@ -380,8 +437,13 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
         </div>
 
         {/* Add alert form */}
-        {showForm && onAskAgent && (
-          <AddAlertForm onAskAgent={onAskAgent} onClose={() => setShowForm(false)} />
+        {showForm && (
+          <AddAlertForm
+            userId={userId}
+            onClose={() => setShowForm(false)}
+            onSaved={load}
+            onAskAgent={onAskAgent}
+          />
         )}
 
         {/* Empty state */}
