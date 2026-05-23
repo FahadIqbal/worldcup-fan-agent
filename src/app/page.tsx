@@ -6,19 +6,21 @@ import ChatPanel from "@/components/ChatPanel";
 import TripCard from "@/components/TripCard";
 import AlertsPanel from "@/components/AlertsPanel";
 import FantasyPanel from "@/components/FantasyPanel";
+import FixturesPanel from "@/components/FixturesPanel";
 import LocationPicker from "@/components/LocationPicker";
 import { useLocation } from "@/hooks/useLocation";
 
 // Replace with Firebase Auth UID in production
 const DEMO_USER_ID = "demo-user";
 
-type Tab = "chat" | "trips" | "alerts" | "fantasy";
+type Tab = "chat" | "trips" | "alerts" | "fantasy" | "fixtures";
 
 const TABS: Array<{ id: Tab; icon: string; label: string }> = [
-  { id: "chat",    icon: "💬", label: "Chat" },
-  { id: "trips",   icon: "✈️",  label: "My Trips" },
-  { id: "alerts",  icon: "🔔", label: "Price Alerts" },
-  { id: "fantasy", icon: "⚽", label: "Fantasy" },
+  { id: "chat",     icon: "💬", label: "Chat" },
+  { id: "trips",    icon: "✈️",  label: "Trips" },
+  { id: "alerts",   icon: "🔔", label: "Alerts" },
+  { id: "fantasy",  icon: "🏆", label: "Fantasy" },
+  { id: "fixtures", icon: "📅", label: "Fixtures" },
 ];
 
 export default function Home() {
@@ -115,25 +117,24 @@ export default function Home() {
             key={t.id}
             onClick={() => setTab(t.id)}
             style={{
-              flex: 1, padding: "10px 8px",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              flex: 1, padding: "10px 4px",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
               background: "transparent", border: "none",
               borderBottom: tab === t.id ? "2px solid #00c896" : "2px solid transparent",
               color: tab === t.id ? "#00c896" : "#64748b",
-              fontSize: 11, cursor: "pointer", fontFamily: "inherit",
-              transition: "all 0.15s", letterSpacing: 0.5,
+              fontSize: 10, cursor: "pointer", fontFamily: "inherit",
+              transition: "all 0.15s", letterSpacing: 0.3,
             }}
           >
-            <span style={{ fontSize: 14 }}>{t.icon}</span>
-            <span style={{ display: "none" }}>{t.label}</span>
-            <span style={{ display: "block" }} className="tab-label">{t.label}</span>
+            <span style={{ fontSize: 13 }}>{t.icon}</span>
+            <span className="tab-label">{t.label}</span>
           </button>
         ))}
       </nav>
 
       {/* Panel area */}
       <main style={{ flex: 1, overflow: "hidden", position: "relative", zIndex: 1 }}>
-        {/* Chat tab — always mounted so session state persists */}
+        {/* Chat — always mounted so session state persists */}
         <div style={{ display: tab === "chat" ? "flex" : "none", flexDirection: "column", height: "100%" }}>
           <ChatPanel
             userId={DEMO_USER_ID}
@@ -160,6 +161,11 @@ export default function Home() {
             <FantasyPanel userId={DEMO_USER_ID} onAskAgent={handleAskAgent} />
           </div>
         )}
+
+        {/* Fixtures — always mounted to preserve fetch cache */}
+        <div style={{ display: tab === "fixtures" ? "flex" : "none", flexDirection: "column", height: "100%" }}>
+          <FixturesPanel onAskAgent={handleAskAgent} />
+        </div>
       </main>
 
       <style>{`
