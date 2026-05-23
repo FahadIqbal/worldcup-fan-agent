@@ -203,22 +203,23 @@ function PitchFormation({ players }: { players: FantasyPlayer[] }) {
 
 function BudgetDisplay({ budget, team }: { budget: number | null; team: FantasyPlayer[] | null }) {
   if (!budget || !team) return null;
+  const cap = Number(budget);
   const spent = team.reduce((s, p) => s + (p.price ?? 0), 0);
-  const pct = Math.min(100, Math.round((spent / budget) * 100));
+  const pct = Math.min(100, Math.round((spent / cap) * 100));
   const color = pct > 90 ? "#ef4444" : pct > 70 ? "#f59e0b" : "#00c896";
   return (
     <div style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 12, padding: "12px 16px", marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 6 }}>
         <span style={{ color: "#64748b" }}>Budget spent</span>
         <span style={{ color }}>
-          ${spent.toFixed(1)}m / ${budget.toFixed(1)}m
+          ${spent.toFixed(1)}m / ${cap.toFixed(1)}m
           <span style={{ color: "#64748b" }}> ({pct}%)</span>
         </span>
       </div>
       <div style={{ height: 6, borderRadius: 4, background: "#0a0f1e", border: "1px solid #1e2d50", overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${pct}%`, borderRadius: 4, background: `linear-gradient(90deg, #00c896, ${color})`, transition: "width 0.5s ease" }} />
       </div>
-      <div style={{ fontSize: 10, color: "#334155", marginTop: 5 }}>${(budget - spent).toFixed(1)}m remaining</div>
+      <div style={{ fontSize: 10, color: "#334155", marginTop: 5 }}>${(cap - spent).toFixed(1)}m remaining</div>
     </div>
   );
 }
