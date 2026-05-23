@@ -8,6 +8,7 @@ const nextConfig = {
       "@google-cloud/vertexai",
       "@modelcontextprotocol/sdk",
       "@neondatabase/serverless",
+      "playwright-core",
     ],
   },
 

@@ -15,9 +15,9 @@ function getPool(): Pool {
   return pool;
 }
 
-export async function neonQuery(sql: string): Promise<NeonQueryResult> {
+export async function neonQuery(sql: string, params?: unknown[]): Promise<NeonQueryResult> {
   try {
-    const result = await getPool().query(sql);
+    const result = await getPool().query(sql, params);
     return { rows: result.rows as Record<string, unknown>[], rowCount: result.rowCount ?? 0 };
   } catch (err) {
     console.error("[neon] query error:", err);

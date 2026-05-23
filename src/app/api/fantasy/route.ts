@@ -1,4 +1,4 @@
-// src/app/api/alerts/route.ts — GET/DELETE price alerts for a user
+// src/app/api/fantasy/route.ts — GET/PUT fantasy profile for a user
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -11,26 +11,31 @@ export async function GET(req: NextRequest) {
 
   try {
     const result = await neonQuery(
-      `SELECT id, route_origin, route_dest, depart_from, depart_to,
-              max_price, currency, current_price, last_checked, triggered, active, created_at
-       FROM price_alerts
+      `SELECT id, platform, budget, team, history, updated_at
+       FROM fantasy_profiles
        WHERE user_id = $1
-       ORDER BY created_at DESC
-       LIMIT 20`,
+       ORDER BY updated_at DESC
+       LIMIT 5`,
       [userId]
     );
-    return NextResponse.json({ alerts: result.rows ?? [] });
+    return NextResponse.json({ profiles: result.rows ?? [] });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
 
-export async function DELETE(req: NextRequest) {
-  const { alertId } = await req.json();
-  if (!alertId) return NextResponse.json({ error: "alertId required" }, { status: 400 });
+export async function PUT(req: NextRequest) {
+  const { userId, platform, budget, team } = await req.json();
+  if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
 
   try {
-    await neonUpsert("price_alerts", { id: alertId, active: false });
+    await neonUpsert("fantasy_profiles", {
+      user_id: userId,
+      platform: platform ?? "custom",
+      budget: budget ?? null,
+      team: team ? JSON.stringify(team) : null,
+      updated_at: new Date().toISOString(),
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
