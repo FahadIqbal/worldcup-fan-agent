@@ -145,13 +145,13 @@ export default function Home() {
 
         {tab === "trips" && (
           <div style={{ height: "100%", overflowY: "auto" }}>
-            <TripCard userId={DEMO_USER_ID} />
+            <TripCard userId={DEMO_USER_ID} onAskAgent={handleAskAgent} />
           </div>
         )}
 
         {tab === "alerts" && (
           <div style={{ height: "100%", overflowY: "auto" }}>
-            <AlertsPanel userId={DEMO_USER_ID} />
+            <AlertsPanel userId={DEMO_USER_ID} onAskAgent={handleAskAgent} />
           </div>
         )}
 
