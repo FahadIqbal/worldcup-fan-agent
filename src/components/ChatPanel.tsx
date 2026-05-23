@@ -2,6 +2,8 @@
 // src/components/ChatPanel.tsx — AI chat interface with streaming
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { UserLocation } from "@/types/location";
 import { getTopPrompts } from "@/lib/quickPrompts";
 
@@ -80,9 +82,34 @@ function MessageBubble({ msg }: { msg: Message }) {
           background: isAgent ? "#0d1f14" : "#140d2a",
           border: isAgent ? "1px solid #00c89622" : "1px solid #8b5cf622",
           color: "#e2e8f0", fontSize: 13.5, lineHeight: 1.75,
-          fontFamily: "inherit", whiteSpace: "pre-wrap", wordBreak: "break-word",
+          fontFamily: "inherit", wordBreak: "break-word",
         }}>
-          {msg.isStreaming ? <TypingIndicator /> : msg.content}
+          {msg.isStreaming ? <TypingIndicator /> : isAgent ? (
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ children }) => <h1 style={{ fontSize: 17, fontWeight: 700, color: "#00c896", margin: "4px 0 10px", borderBottom: "1px solid #00c89633", paddingBottom: 6 }}>{children}</h1>,
+                h2: ({ children }) => <h2 style={{ fontSize: 15, fontWeight: 700, color: "#00c896", margin: "10px 0 6px" }}>{children}</h2>,
+                h3: ({ children }) => <h3 style={{ fontSize: 13.5, fontWeight: 600, color: "#38bdf8", margin: "8px 0 4px" }}>{children}</h3>,
+                p: ({ children }) => <p style={{ margin: "4px 0 8px" }}>{children}</p>,
+                strong: ({ children }) => <strong style={{ color: "#f1f5f9", fontWeight: 600 }}>{children}</strong>,
+                em: ({ children }) => <em style={{ color: "#94a3b8" }}>{children}</em>,
+                a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8", textDecoration: "underline" }}>{children}</a>,
+                blockquote: ({ children }) => <blockquote style={{ borderLeft: "3px solid #00c896", paddingLeft: 10, margin: "8px 0", color: "#94a3b8", fontStyle: "italic" }}>{children}</blockquote>,
+                hr: () => <hr style={{ border: "none", borderTop: "1px solid #1e2d50", margin: "10px 0" }} />,
+                ul: ({ children }) => <ul style={{ paddingLeft: 18, margin: "4px 0 8px" }}>{children}</ul>,
+                ol: ({ children }) => <ol style={{ paddingLeft: 18, margin: "4px 0 8px" }}>{children}</ol>,
+                li: ({ children }) => <li style={{ marginBottom: 3 }}>{children}</li>,
+                code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => inline
+                  ? <code style={{ background: "#0a1020", border: "1px solid #1e2d50", borderRadius: 4, padding: "1px 5px", fontSize: 12, color: "#00c896" }}>{children}</code>
+                  : <pre style={{ background: "#0a1020", border: "1px solid #1e2d50", borderRadius: 6, padding: "10px 12px", overflowX: "auto", fontSize: 12, margin: "6px 0" }}><code>{children}</code></pre>,
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
+          ) : (
+            <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
+          )}
         </div>
 
         {isAgent && msg.toolsUsed && msg.toolsUsed.length > 0 && (

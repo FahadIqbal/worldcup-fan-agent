@@ -109,40 +109,35 @@ export async function runFanAgent(
 
   let result: { text: string; toolsUsed: string[]; tokensUsed: number };
 
-  if (!process.env.GCP_PROJECT_ID) {
-    // Demo mode — no Vertex AI credentials configured
-    result = await demoResponse(primarySkill.id, req.message, onToken);
-  } else {
-    try {
-      result = await agentLoop({
+  try {
+    result = await agentLoop({
+      state,
+      systemPrompt: buildSkillPrompt(primarySkill, userContextStr),
+      skill: primarySkill,
+      onToken,
+    });
+
+    // Compound goal: run the secondary skill too
+    if (skills.length > 1) {
+      const secondary = await agentLoop({
         state,
-        systemPrompt: buildSkillPrompt(primarySkill, userContextStr),
-        skill: primarySkill,
+        systemPrompt: buildSkillPrompt(skills[1], ""),
+        skill: skills[1],
         onToken,
       });
-
-      // Compound goal: run the secondary skill too
-      if (skills.length > 1) {
-        const secondary = await agentLoop({
-          state,
-          systemPrompt: buildSkillPrompt(skills[1], ""),
-          skill: skills[1],
-          onToken,
-        });
-        result.text += "\n\n---\n\n" + secondary.text;
-        result.toolsUsed.push(...secondary.toolsUsed);
-        result.tokensUsed += secondary.tokensUsed;
-      }
-    } catch (err) {
-      const errStr = String(err);
-      // Fall back to demo mode gracefully when GCP credentials aren't configured locally
-      if (errStr.includes("GoogleAuthError") || errStr.includes("Unable to authenticate")) {
-        result = await demoResponse(primarySkill.id, req.message, onToken);
-      } else {
-        const msg = `I ran into an issue processing your request: ${errStr}\n\nPlease try again.`;
-        if (onToken) await onToken(msg);
-        result = { text: msg, toolsUsed: [], tokensUsed: 0 };
-      }
+      result.text += "\n\n---\n\n" + secondary.text;
+      result.toolsUsed.push(...secondary.toolsUsed);
+      result.tokensUsed += secondary.tokensUsed;
+    }
+  } catch (err) {
+    const errStr = String(err);
+    // Vertex AI not authenticated locally — answer with Tavily live search instead
+    if (errStr.includes("GoogleAuthError") || errStr.includes("Unable to authenticate") || !process.env.GCP_PROJECT_ID) {
+      result = await tavilyFallbackResponse(primarySkill, req.message, req.userLocation, onToken);
+    } else {
+      const msg = `I ran into an issue: ${errStr}\n\nPlease try again.`;
+      if (onToken) await onToken(msg);
+      result = { text: msg, toolsUsed: [], tokensUsed: 0 };
     }
   }
 
@@ -299,53 +294,120 @@ function parseToolCalls(text: string): ParsedToolCall[] {
   return calls;
 }
 
-// ─── Demo mode (no GCP credentials) ───────────────────────────────────────
+// ─── Tavily fallback (Vertex AI unavailable) ──────────────────────────────
+// Runs real Tavily searches when GCP credentials aren't configured locally.
+// Users get live, cited answers instead of a placeholder message.
 
-const DEMO_INTROS: Record<SkillId, string> = {
-  "SK-01": "I'd love to help you plan a complete World Cup trip! Here's a sample of what I can do:",
-  "SK-02": "I can set up a flight price alert for you. Here's how it would look:",
-  "SK-03": "Let me check the visa requirements for your journey.",
-  "SK-04": "Here's the FIFA 2026 match schedule information you're looking for:",
-  "SK-05": "Let me find accommodation near the stadium for you.",
-  "SK-06": "Here's my fantasy league analysis:",
-  "SK-07": "Here's your budget breakdown:",
-  "SK-08": "Here are the fan zones near the venue:",
-  "SK-09": "Here are your transport options:",
-  "SK-10": "Here's the weather forecast for your match city:",
+const SKILL_QUERIES: Record<SkillId, (msg: string, loc?: UserLocation) => string[]> = {
+  "SK-01": (m, l) => [
+    `FIFA World Cup 2026 travel guide flights hotels ${l?.city ?? ""} ${m}`,
+    `World Cup 2026 host cities venues schedule tickets site:fifa.com OR site:sportingnews.com`,
+  ],
+  "SK-02": (m, l) => [
+    `cheapest flights ${l?.city ?? ""} to USA World Cup 2026 price tracker`,
+    `flight price alert World Cup 2026 ${m}`,
+  ],
+  "SK-03": (m, l) => [
+    `${l?.country ?? ""} passport US visa requirements 2026 World Cup entry`,
+    `site:travel.state.gov OR site:canada.ca ${l?.country ?? ""} visitor visa tourist`,
+  ],
+  "SK-04": (_, l) => [
+    `FIFA World Cup 2026 full match schedule fixtures groups ${l?.country ?? ""}`,
+    `World Cup 2026 kickoff times dates venues site:fifa.com`,
+  ],
+  "SK-05": (m, l) => [
+    `best hotels near World Cup 2026 stadium ${m} ${l?.city ?? ""}`,
+    `accommodation World Cup 2026 host city booking tips`,
+  ],
+  "SK-06": (m) => [
+    `World Cup 2026 fantasy football picks injuries form ${m}`,
+    `best players World Cup 2026 fantasy team captain picks`,
+  ],
+  "SK-07": (_, l) => [
+    `World Cup 2026 total trip cost budget breakdown flights hotel tickets ${l?.country ?? ""}`,
+    `how much does it cost to attend World Cup 2026 budget guide`,
+  ],
+  "SK-08": (m) => [
+    `FIFA fan zone official World Cup 2026 ${m} free viewing party`,
+    `best sports bars public viewing World Cup 2026 host cities`,
+  ],
+  "SK-09": (m) => [
+    `transport airport to stadium World Cup 2026 ${m} public transit`,
+    `getting around World Cup 2026 host city match day transport guide`,
+  ],
+  "SK-10": (m) => [
+    `weather World Cup 2026 host cities June July climate ${m}`,
+    `what to pack World Cup 2026 outdoor stadium summer USA`,
+  ],
 };
 
-async function demoResponse(
-  skillId: SkillId,
+const SKILL_HEADERS: Record<SkillId, string> = {
+  "SK-01": "✈️ World Cup 2026 — Trip Planning",
+  "SK-02": "🔔 Flight Price Monitoring",
+  "SK-03": "🛂 Visa & Entry Requirements",
+  "SK-04": "📅 Match Schedule & Fixtures",
+  "SK-05": "🏨 Hotels & Accommodation",
+  "SK-06": "⚽ Fantasy League Advice",
+  "SK-07": "💰 Trip Budget Breakdown",
+  "SK-08": "🎪 Fan Zones & Viewing Parties",
+  "SK-09": "🚌 Transport & Getting Around",
+  "SK-10": "🌤 Weather & Packing Guide",
+};
+
+async function tavilyFallbackResponse(
+  skill: Skill,
   userMessage: string,
+  location: UserLocation | undefined,
   onToken?: (token: string) => Promise<void>
 ): Promise<{ text: string; toolsUsed: string[]; tokensUsed: number }> {
-  const intro = DEMO_INTROS[skillId] ?? "I can help with that!";
+  const queries = SKILL_QUERIES[skill.id]?.(userMessage, location) ?? [userMessage];
 
-  const text = `${intro}
+  // Run searches in parallel
+  const searchResults = await Promise.all(queries.map((q) => tavilySearch(q, "advanced")));
 
-> ⚠️ **DEMO MODE** — \`GCP_PROJECT_ID\` is not configured.
-> The live agent uses Gemini 1.5 Pro via Vertex AI to search the web, check visas,
-> find flights, and save your trip to your profile.
->
-> **To activate:** Add your GCP credentials to \`.env.local\` and restart the server.
-> See \`.env.example\` for all required variables.
+  const header = SKILL_HEADERS[skill.id] ?? "🌍 World Cup 2026";
+  const locNote = location?.city ? ` — tailored for travellers from **${location.city}, ${location.country}**` : "";
 
-**Your query:** "${userMessage}"
+  // Build a structured, cited response from Tavily results
+  const sections = searchResults
+    .map((r, i) => {
+      if (!r.results || r.results.startsWith("[Tavily]")) return null;
+      const lines = r.results.split("\n").filter(Boolean);
+      const answer = lines.find((l) => l.startsWith("DIRECT ANSWER:"))?.replace("DIRECT ANSWER: ", "");
+      const sources = lines.filter((l) => l.startsWith("URL:")).slice(0, 2).map((l) => l.replace("URL: ", ""));
+      const content = lines
+        .filter((l) => !l.startsWith("URL:") && !l.startsWith("[") && !l.startsWith("DIRECT ANSWER:"))
+        .slice(0, 6)
+        .join("\n");
 
-Once configured, I would:
-1. 🔍 Search Tavily for live data on your request
-2. ✈️  Scrape real flight prices via Google Flights
-3. 🌐 Check official government visa pages
-4. 💾 Save your plan to your Neon profile
+      return { query: queries[i], answer, content, sources };
+    })
+    .filter(Boolean);
 
-**Ready to go?** Copy \`.env.example\` → \`.env.local\` and fill in your keys!`;
+  let text = `## ${header}${locNote}\n\n`;
+
+  if (sections.length === 0) {
+    text += `I searched for live information about your query but couldn't retrieve results right now. Please try again in a moment.\n\n**Your question:** ${userMessage}`;
+  } else {
+    for (const s of sections) {
+      if (!s) continue;
+      if (s.answer) text += `> **${s.answer}**\n\n`;
+      if (s.content) text += `${s.content}\n\n`;
+      if (s.sources.length > 0) {
+        text += `**Sources:** ${s.sources.map((u) => `[${new URL(u).hostname}](${u})`).join(" · ")}\n\n`;
+      }
+      text += "---\n\n";
+    }
+
+    text += `*Powered by Tavily live search · Connect Google Cloud credentials for the full Gemini 1.5 Pro agentic experience.*`;
+  }
 
   if (onToken) {
     for (const word of text.split(" ")) {
       await onToken(word + " ");
-      await new Promise((r) => setTimeout(r, 12));
+      await new Promise((r) => setTimeout(r, 6));
     }
   }
 
-  return { text, toolsUsed: [], tokensUsed: 0 };
+  return { text, toolsUsed: ["tavily_search"], tokensUsed: 0 };
 }
