@@ -51,11 +51,10 @@ export default function FantasyPanel({ userId, onAskAgent }: FantasyPanelProps) 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/trips?userId=${encodeURIComponent(userId)}`)
-      .then(() => {
-        // Fantasy profile would come from a dedicated endpoint;
-        // for now we show the empty state with quick-ask shortcuts.
-        setProfile(null);
+    fetch(`/api/fantasy?userId=${encodeURIComponent(userId)}`)
+      .then((r) => r.json())
+      .then((d: { profiles?: FantasyProfile[] }) => {
+        setProfile(d.profiles?.[0] ?? null);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

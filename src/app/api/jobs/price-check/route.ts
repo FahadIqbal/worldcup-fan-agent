@@ -133,7 +133,7 @@ Book now before the price goes back up!
 }
 
 async function sendPushNotification(userId: string, body: string) {
-  const res = await neonQuery(`SELECT fcm_token FROM user_profiles WHERE id = '${userId}'`);
+  const res = await neonQuery(`SELECT fcm_token FROM user_profiles WHERE id = $1`, [userId]);
   const token = (res.rows?.[0] as { fcm_token?: string })?.fcm_token;
   if (!token) return;
   await fetch("https://fcm.googleapis.com/fcm/send", {
@@ -150,7 +150,7 @@ async function sendPushNotification(userId: string, body: string) {
 }
 
 async function sendEmailNotification(userId: string, subject: string, body: string) {
-  const res = await neonQuery(`SELECT email FROM user_profiles WHERE id = '${userId}'`);
+  const res = await neonQuery(`SELECT email FROM user_profiles WHERE id = $1`, [userId]);
   const email = (res.rows?.[0] as { email?: string })?.email;
   if (!email) return;
   await fetch("https://api.resend.com/emails", {

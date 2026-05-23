@@ -86,15 +86,18 @@ export interface ToolCall {
 export async function loadUserContext(userId: string): Promise<UserContext> {
   try {
     const [profileRes, tripsRes, alertsRes, runsRes] = await Promise.all([
-      neonQuery(`SELECT * FROM user_profiles WHERE id = '${userId}' LIMIT 1`),
+      neonQuery(`SELECT * FROM user_profiles WHERE id = $1 LIMIT 1`, [userId]),
       neonQuery(
-        `SELECT * FROM trips WHERE user_id = '${userId}' AND status != 'completed' ORDER BY created_at DESC LIMIT 5`
+        `SELECT * FROM trips WHERE user_id = $1 AND status != 'completed' ORDER BY created_at DESC LIMIT 5`,
+        [userId]
       ),
       neonQuery(
-        `SELECT * FROM price_alerts WHERE user_id = '${userId}' AND active = true ORDER BY created_at DESC LIMIT 10`
+        `SELECT * FROM price_alerts WHERE user_id = $1 AND active = true ORDER BY created_at DESC LIMIT 10`,
+        [userId]
       ),
       neonQuery(
-        `SELECT id, skill_id, goal, created_at FROM agent_runs WHERE user_id = '${userId}' ORDER BY created_at DESC LIMIT 3`
+        `SELECT id, skill_id, goal, created_at FROM agent_runs WHERE user_id = $1 ORDER BY created_at DESC LIMIT 3`,
+        [userId]
       ),
     ]);
 

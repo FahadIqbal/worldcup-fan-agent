@@ -15,9 +15,10 @@ export async function GET() {
     checks.neon = "error";
   }
 
-  checks.vertexai = process.env.GCP_PROJECT_ID ? "ok" : "error";
-  checks.tavily = process.env.TAVILY_API_KEY ? "ok" : "error";
-  checks.browserbase = process.env.BROWSERBASE_API_KEY ? "ok" : "error";
+  const isSet = (v?: string) => !!v && !v.startsWith("REPLACE");
+  checks.vertexai = isSet(process.env.GCP_PROJECT_ID) ? "ok" : "error";
+  checks.tavily = isSet(process.env.TAVILY_API_KEY) ? "ok" : "error";
+  checks.browserbase = isSet(process.env.BROWSERBASE_API_KEY) ? "ok" : "error";
 
   const allOk = Object.values(checks).every((v) => v === "ok");
 

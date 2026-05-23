@@ -14,9 +14,10 @@ export async function GET(req: NextRequest) {
       `SELECT id, origin_city, destination_city, status, budget, currency,
               cost_breakdown, itinerary, travel_dates, match_id, created_at
        FROM trips
-       WHERE user_id = '${userId}'
+       WHERE user_id = $1
        ORDER BY created_at DESC
-       LIMIT 20`
+       LIMIT 20`,
+      [userId]
     );
     return NextResponse.json({ trips: result.rows ?? [] });
   } catch (err) {

@@ -134,9 +134,15 @@ export async function runFanAgent(
         result.tokensUsed += secondary.tokensUsed;
       }
     } catch (err) {
-      const msg = `I ran into an issue processing your request: ${String(err)}\n\nPlease try again.`;
-      if (onToken) await onToken(msg);
-      result = { text: msg, toolsUsed: [], tokensUsed: 0 };
+      const errStr = String(err);
+      // Fall back to demo mode gracefully when GCP credentials aren't configured locally
+      if (errStr.includes("GoogleAuthError") || errStr.includes("Unable to authenticate")) {
+        result = await demoResponse(primarySkill.id, req.message, onToken);
+      } else {
+        const msg = `I ran into an issue processing your request: ${errStr}\n\nPlease try again.`;
+        if (onToken) await onToken(msg);
+        result = { text: msg, toolsUsed: [], tokensUsed: 0 };
+      }
     }
   }
 
