@@ -1,4 +1,4 @@
-// src/app/api/alerts/route.ts — GET/DELETE price alerts for a user
+// src/app/api/alerts/route.ts — CRUD for price alerts
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,41 @@ export async function GET(req: NextRequest) {
       [userId]
     );
     return NextResponse.json({ alerts: result.rows ?? [] });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { userId, origin, dest, price, currency, departFrom, departTo } = body as Record<string, string>;
+
+    if (!userId || !origin || !dest || !price) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Ensure the user profile row exists (FK constraint on price_alerts)
+    await neonUpsert("user_profiles", { id: userId, display_name: userId, currency: currency ?? "USD" });
+
+    const result = await neonUpsert("price_alerts", {
+      user_id: userId,
+      route_origin: origin.trim().toUpperCase(),
+      route_dest: dest.trim(),
+      max_price: Number(price),
+      currency: currency ?? "USD",
+      depart_from: departFrom ?? null,
+      depart_to: departTo ?? null,
+      active: true,
+      triggered: false,
+      current_price: null,
+    });
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: "Insert failed" }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }

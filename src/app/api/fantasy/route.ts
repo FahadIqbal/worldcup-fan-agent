@@ -29,13 +29,20 @@ export async function PUT(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
 
   try {
-    await neonUpsert("fantasy_profiles", {
-      user_id: userId,
-      platform: platform ?? "custom",
-      budget: budget ?? null,
-      team: team ? JSON.stringify(team) : null,
-      updated_at: new Date().toISOString(),
-    });
+    // Satisfy FK — upsert user profile row first
+    await neonUpsert("user_profiles", { id: userId, display_name: userId });
+
+    // Use raw query for correct ON CONFLICT (user_id, platform) behaviour
+    await neonQuery(
+      `INSERT INTO fantasy_profiles (user_id, platform, budget, team, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (user_id, platform) DO UPDATE SET
+         budget     = EXCLUDED.budget,
+         team       = EXCLUDED.team,
+         updated_at = NOW()`,
+      [userId, platform ?? "custom", budget ?? null, team ? JSON.stringify(team) : null]
+    );
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
