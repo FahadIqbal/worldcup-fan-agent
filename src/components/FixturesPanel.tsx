@@ -5,9 +5,14 @@ import { useEffect, useState, useMemo } from "react";
 import {
   predictMatch,
   computeTournamentOdds,
+  computeGroupStandings,
+  simulateKnockoutBracket,
   headToHead,
   type MatchPrediction,
   type TournamentOdds,
+  type GroupStanding,
+  type BracketMatch,
+  type KnockoutBracket,
 } from "@/lib/matchPredictor";
 import { TEAMS, TEAM_ARRAY, type TeamInfo } from "@/data/teamStrengths";
 import type { FixtureData, FixtureMatch } from "@/app/api/fixtures/route";
@@ -16,7 +21,7 @@ interface FixturesPanelProps {
   onAskAgent?: (prompt: string) => void;
 }
 
-type SubTab = "schedule" | "predictions" | "h2h";
+type SubTab = "schedule" | "standings" | "predictions" | "bracket" | "h2h";
 
 // ─── Utility ──────────────────────────────────────────────────────────────
 
@@ -504,6 +509,235 @@ function HeadToHeadTab({ onAskAgent }: { onAskAgent?: (p: string) => void }) {
   );
 }
 
+// ─── Standings tab ────────────────────────────────────────────────────────
+
+function StandingsTab({ data, onAskAgent }: { data: FixtureData; onAskAgent?: (p: string) => void }) {
+  const groups = Object.keys(data.groups).sort();
+  const [activeGroup, setActiveGroup] = useState(groups[0] ?? "Group A");
+
+  const teamCodes = data.groups[activeGroup] ?? [];
+  const standings = useMemo(() => computeGroupStandings(teamCodes), [teamCodes.join(",")]);
+
+  return (
+    <div>
+      {/* Group selector */}
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
+        {groups.map((g) => {
+          const letter = g.replace("Group ", "");
+          const active = g === activeGroup;
+          return (
+            <button key={g} onClick={() => setActiveGroup(g)} style={{
+              width: 32, height: 32, borderRadius: 8,
+              border: `1px solid ${active ? "#00c896" : "#1e2d50"}`,
+              background: active ? "#00c89622" : "transparent",
+              color: active ? "#00c896" : "#64748b",
+              fontSize: 12, fontWeight: active ? 700 : 400,
+              cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+            }}>
+              {letter}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Table */}
+      <div style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 14, overflow: "hidden", marginBottom: 14 }}>
+        {/* Header */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "20px 1fr 28px 28px 28px 28px 36px 40px",
+          padding: "8px 14px", background: "#0a0f1e", borderBottom: "1px solid #1e2d50",
+        }}>
+          {["", "Team", "P", "W", "D", "L", "GD", "Pts"].map((h, i) => (
+            <span key={i} style={{
+              color: "#334155", fontSize: 9, textAlign: i >= 2 ? "center" : "left",
+              letterSpacing: 0.8, fontWeight: 600,
+            }}>{h}</span>
+          ))}
+        </div>
+
+        {standings.map((s: GroupStanding, i: number) => {
+          const qualified = i < 2;
+          const third = i === 2;
+          return (
+            <div key={s.team.code} style={{
+              display: "grid", gridTemplateColumns: "20px 1fr 28px 28px 28px 28px 36px 40px",
+              padding: "10px 14px", borderBottom: "1px solid #1e2d5022",
+              background: qualified ? "#0a1a0f" : "transparent",
+              borderLeft: `3px solid ${qualified ? "#00c896" : third ? "#f59e0b44" : "transparent"}`,
+              transition: "background 0.2s", animation: "fadeUp 0.25s ease",
+            }}>
+              <span style={{
+                color: qualified ? "#00c896" : third ? "#f59e0b" : "#334155",
+                fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center",
+              }}>
+                {qualified ? "✓" : i + 1}
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16 }}>{s.team.flag}</span>
+                <div>
+                  <div style={{ color: qualified ? "#f1f5f9" : "#94a3b8", fontSize: 12, fontWeight: qualified ? 700 : 400 }}>
+                    {s.team.name}
+                  </div>
+                  <div style={{ color: "#334155", fontSize: 9 }}>FIFA #{s.team.fifaRank}</div>
+                </div>
+              </div>
+              {[s.played, s.won, s.drawn, s.lost,
+                s.gd > 0 ? `+${s.gd}` : String(s.gd), s.pts].map((v, j) => (
+                <span key={j} style={{
+                  textAlign: "center", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center",
+                  color: j === 5 ? (qualified ? "#00c896" : "#f1f5f9") : j === 4 ? (s.gd > 0 ? "#00c896" : s.gd < 0 ? "#ef4444" : "#64748b") : "#94a3b8",
+                  fontWeight: j === 5 ? 800 : 400,
+                }}>
+                  {v}
+                </span>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ display: "flex", gap: 16, fontSize: 10, marginBottom: 10 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#00c896" }}>
+          <span style={{ width: 10, height: 3, background: "#00c896", borderRadius: 2, display: "inline-block" }} />
+          Top 2 qualify
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#f59e0b" }}>
+          <span style={{ width: 10, height: 3, background: "#f59e0b", borderRadius: 2, display: "inline-block" }} />
+          Best 3rd contender
+        </span>
+      </div>
+      <div style={{ fontSize: 10, color: "#334155", marginBottom: 12 }}>
+        📊 Projected standings based on ELO prediction model — not actual match results.
+      </div>
+
+      {onAskAgent && (
+        <button
+          onClick={() => onAskAgent(`Analyse ${activeGroup} at the 2026 World Cup — who are the favourites, key clashes, and how will the final standings look?`)}
+          style={{
+            padding: "7px 14px", borderRadius: 8, border: "1px solid #00c89644",
+            background: "transparent", color: "#00c896", fontSize: 11,
+            cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#00c89611"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+        >
+          ⚽ Ask agent to analyse {activeGroup} →
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Bracket tab ──────────────────────────────────────────────────────────
+
+function BracketMatchCard({ match, showWinner }: { match: BracketMatch; showWinner: boolean }) {
+  return (
+    <div style={{
+      background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 10,
+      padding: "10px 12px", marginBottom: 8,
+    }}>
+      {([match.team1, match.team2] as const).map((team, i) => {
+        const isWinner = showWinner && team.code === match.winner.code;
+        const chance = i === 0 ? match.prediction.team1Win : match.prediction.team2Win;
+        return (
+          <div key={team.code} style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "5px 0",
+            borderBottom: i === 0 ? "1px solid #1e2d5033" : undefined,
+            opacity: showWinner && !isWinner ? 0.4 : 1,
+            transition: "opacity 0.2s",
+          }}>
+            <span style={{ fontSize: 17 }}>{team.flag}</span>
+            <span style={{ flex: 1, color: isWinner ? "#00c896" : "#e2e8f0", fontSize: 12, fontWeight: isWinner ? 700 : 400 }}>
+              {team.name}
+            </span>
+            <span style={{ fontSize: 10, color: "#64748b" }}>{chance}%</span>
+            {isWinner && <span style={{ color: "#00c896", fontSize: 11 }}>→</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function BracketTab({ onAskAgent }: { onAskAgent?: (p: string) => void }) {
+  const bracket = useMemo((): KnockoutBracket => simulateKnockoutBracket(), []);
+
+  return (
+    <div>
+      <div style={{ color: "#64748b", fontSize: 10, marginBottom: 16, letterSpacing: 1 }}>
+        🏆 PREDICTED KNOCKOUT BRACKET — ELO MODEL · TOP 8 SEEDS · KNOCKOUT RULES
+      </div>
+
+      {/* QF */}
+      <div style={{ color: "#f59e0b", fontSize: 10, fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>
+        ⚡ QUARTER-FINALS
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        {bracket.qf.map((m, i) => <BracketMatchCard key={i} match={m} showWinner />)}
+      </div>
+
+      {/* SF */}
+      <div style={{ color: "#0ea5e9", fontSize: 10, fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>
+        🔥 SEMI-FINALS
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        {bracket.sf.map((m, i) => <BracketMatchCard key={i} match={m} showWinner />)}
+      </div>
+
+      {/* Final */}
+      <div style={{ color: "#00c896", fontSize: 10, fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>
+        🏆 FINAL
+      </div>
+      <div style={{
+        background: "linear-gradient(135deg, #0a1a0f, #0d1421)",
+        border: "1px solid #00c89644", borderRadius: 14, padding: "16px",
+        boxShadow: "0 0 24px #00c89618", marginBottom: 14,
+      }}>
+        <BracketMatchCard match={bracket.final} showWinner={false} />
+
+        {/* Champion display */}
+        <div style={{ textAlign: "center", padding: "16px 0 8px" }}>
+          <div style={{ fontSize: 52, marginBottom: 8, filter: "drop-shadow(0 0 20px #f59e0b66)", animation: "pulse 2s ease infinite" }}>
+            {bracket.champion.flag}
+          </div>
+          <div style={{ color: "#f59e0b", fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>
+            {bracket.champion.name}
+          </div>
+          <div style={{
+            display: "inline-block", marginTop: 8, padding: "3px 14px", borderRadius: 20,
+            background: "#f59e0b22", border: "1px solid #f59e0b44",
+            color: "#f59e0b", fontSize: 10, letterSpacing: 1, fontWeight: 700,
+          }}>
+            🏆 PREDICTED CHAMPION
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 10, color: "#334155", lineHeight: 1.6, marginBottom: 12 }}>
+        💡 Seeded by ELO rating. 1v8, 4v5 (top half) · 2v7, 3v6 (bottom half). Draws not possible in knockout.
+        Not a betting product.
+      </div>
+
+      {onAskAgent && (
+        <button
+          onClick={() => onAskAgent(`Analyse the predicted 2026 World Cup knockout bracket — who has the easiest path, who faces the toughest draw, and is ${bracket.champion.name} genuinely the most likely champion?`)}
+          style={{
+            width: "100%", padding: "10px", borderRadius: 10,
+            border: "1px solid #00c89666",
+            background: "linear-gradient(135deg, #00c89611, #0ea5e911)",
+            color: "#00c896", fontSize: 12, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "linear-gradient(135deg, #00c89622, #0ea5e922)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "linear-gradient(135deg, #00c89611, #0ea5e911)"; }}
+        >
+          ⚽ Get full AI tournament bracket analysis →
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Main panel ───────────────────────────────────────────────────────────
 
 export default function FixturesPanel({ onAskAgent }: FixturesPanelProps) {
@@ -539,8 +773,10 @@ export default function FixturesPanel({ onAskAgent }: FixturesPanelProps) {
 
   const SUB_TABS: Array<{ id: SubTab; label: string }> = [
     { id: "schedule",    label: "📅 Schedule" },
+    { id: "standings",   label: "📊 Standings" },
     { id: "predictions", label: "🏆 Predictions" },
-    { id: "h2h",         label: "⚔ Head-to-Head" },
+    { id: "bracket",     label: "⚡ Bracket" },
+    { id: "h2h",         label: "⚔ H2H" },
   ];
 
   return (
@@ -586,7 +822,23 @@ export default function FixturesPanel({ onAskAgent }: FixturesPanelProps) {
             )
           )}
 
+          {subTab === "standings" && (
+            loading ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} style={{ height: 44, background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 8, animation: "shimmer 1.5s ease infinite" }} />
+                ))}
+              </div>
+            ) : fixtures ? (
+              <StandingsTab data={fixtures} onAskAgent={onAskAgent} />
+            ) : (
+              <div style={{ textAlign: "center", color: "#64748b", padding: 40 }}>
+                Could not load standings data. Try refreshing.
+              </div>
+            )
+          )}
           {subTab === "predictions" && <PredictionsTab onAskAgent={onAskAgent} />}
+          {subTab === "bracket" && <BracketTab onAskAgent={onAskAgent} />}
           {subTab === "h2h" && <HeadToHeadTab onAskAgent={onAskAgent} />}
         </div>
       </div>

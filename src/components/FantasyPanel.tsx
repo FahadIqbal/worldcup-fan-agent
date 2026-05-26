@@ -122,6 +122,19 @@ function FormStars({ form }: { form: number | undefined }) {
   );
 }
 
+function RatingBar({ rating, posColor }: { rating: number; posColor: string }) {
+  const pct = Math.round(((rating - 7.5) / 2.5) * 100); // maps 7.5–10 to 0–100%
+  return (
+    <div style={{ width: "100%", height: 3, borderRadius: 2, background: "#1e2d50", overflow: "hidden", marginTop: 5 }}>
+      <div style={{
+        height: "100%", width: `${pct}%`, borderRadius: 2,
+        background: `linear-gradient(90deg, ${posColor}66, ${posColor})`,
+        transition: "width 0.4s ease",
+      }} />
+    </div>
+  );
+}
+
 function PitchFormation({ players }: { players: FantasyPlayer[] }) {
   const rows: Record<string, FantasyPlayer[]> = { GK: [], DEF: [], MID: [], FWD: [] };
   for (const p of players) {
@@ -423,8 +436,15 @@ function SquadBuilder({ userId, onSaved }: { userId: string; onSaved: (team: Fan
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <FormStars form={p.form} />
+                <span style={{ fontSize: 9, color: "#64748b" }}>Rtg {p.rating.toFixed(1)}</span>
                 <span style={{ fontSize: 11, color: posColors[posTab], fontWeight: 700 }}>${p.price}m</span>
+              </div>
+              <RatingBar rating={p.rating} posColor={posColors[posTab]} />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+                <FormStars form={p.form} />
+                <span style={{ fontSize: 9, color: "#64748b" }}>
+                  val {(p.rating / p.price).toFixed(2)}
+                </span>
               </div>
               {selected && (
                 <button onClick={(e) => { e.stopPropagation(); setCaptainName(p.name); }} style={{

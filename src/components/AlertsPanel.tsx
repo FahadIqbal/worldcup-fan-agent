@@ -507,6 +507,45 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
           </div>
         )}
 
+        {/* Popular routes */}
+        {alerts.length === 0 && !showForm && (
+          <div style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+            <div style={{ color: "#64748b", fontSize: 10, marginBottom: 10, letterSpacing: 1 }}>
+              🌍 POPULAR WC 2026 ROUTES
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {[
+                { from: "London", to: "New York", est: "$340–$580" },
+                { from: "São Paulo", to: "Miami", est: "$280–$520" },
+                { from: "Tokyo", to: "Los Angeles", est: "$650–$1,100" },
+                { from: "Dubai", to: "New York", est: "$480–$820" },
+                { from: "Lagos", to: "New York", est: "$650–$1,100" },
+                { from: "Sydney", to: "Los Angeles", est: "$900–$1,500" },
+              ].map(({ from, to, est }) => (
+                <button key={from} onClick={() => { setShowForm(true); }} style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "8px 12px", borderRadius: 8,
+                  background: "#0a0f1e", border: "1px solid #1e2d50",
+                  cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                  transition: "all 0.15s",
+                }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#0ea5e944"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d50"; }}
+                >
+                  <span style={{ fontSize: 14 }}>✈</span>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ color: "#e2e8f0", fontSize: 11, fontWeight: 600 }}>{from}</span>
+                    <span style={{ color: "#334155", fontSize: 11 }}> → </span>
+                    <span style={{ color: "#0ea5e9", fontSize: 11, fontWeight: 600 }}>{to}</span>
+                  </div>
+                  <span style={{ color: "#64748b", fontSize: 10 }}>{est}</span>
+                  <span style={{ color: "#334155", fontSize: 11 }}>+</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Tip */}
         {alerts.length > 0 && (
           <div style={{

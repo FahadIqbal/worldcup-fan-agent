@@ -23,22 +23,22 @@ interface TripCardProps {
 }
 
 const WC_HOST_CITIES = [
-  { city: "New York",      country: "USA",    flag: "🇺🇸", stadium: "MetLife Stadium",          cap: "82,500" },
-  { city: "Los Angeles",   country: "USA",    flag: "🇺🇸", stadium: "SoFi Stadium",              cap: "70,240" },
-  { city: "Dallas",        country: "USA",    flag: "🇺🇸", stadium: "AT&T Stadium",              cap: "80,000" },
-  { city: "Miami",         country: "USA",    flag: "🇺🇸", stadium: "Hard Rock Stadium",         cap: "65,326" },
-  { city: "Atlanta",       country: "USA",    flag: "🇺🇸", stadium: "Mercedes-Benz Stadium",     cap: "71,000" },
-  { city: "Houston",       country: "USA",    flag: "🇺🇸", stadium: "NRG Stadium",              cap: "72,220" },
-  { city: "Seattle",       country: "USA",    flag: "🇺🇸", stadium: "Lumen Field",              cap: "69,000" },
-  { city: "San Francisco", country: "USA",    flag: "🇺🇸", stadium: "Levi's Stadium",           cap: "68,500" },
-  { city: "Kansas City",   country: "USA",    flag: "🇺🇸", stadium: "Arrowhead Stadium",        cap: "73,000" },
-  { city: "Boston",        country: "USA",    flag: "🇺🇸", stadium: "Gillette Stadium",         cap: "65,878" },
-  { city: "Philadelphia",  country: "USA",    flag: "🇺🇸", stadium: "Lincoln Financial Field",  cap: "67,594" },
-  { city: "Vancouver",     country: "Canada", flag: "🇨🇦", stadium: "BC Place",                 cap: "54,500" },
-  { city: "Toronto",       country: "Canada", flag: "🇨🇦", stadium: "BMO Field",                cap: "45,736" },
-  { city: "Mexico City",   country: "Mexico", flag: "🇲🇽", stadium: "Estadio Azteca",           cap: "87,523" },
-  { city: "Guadalajara",   country: "Mexico", flag: "🇲🇽", stadium: "Estadio Akron",            cap: "49,850" },
-  { city: "Monterrey",     country: "Mexico", flag: "🇲🇽", stadium: "Estadio BBVA",             cap: "51,349" },
+  { city: "New York",      country: "USA",    flag: "🇺🇸", stadium: "MetLife Stadium",          cap: "82,500", estCost: "$3.2k–5.5k" },
+  { city: "Los Angeles",   country: "USA",    flag: "🇺🇸", stadium: "SoFi Stadium",              cap: "70,240", estCost: "$3.5k–6k" },
+  { city: "Dallas",        country: "USA",    flag: "🇺🇸", stadium: "AT&T Stadium",              cap: "80,000", estCost: "$2.8k–4.8k" },
+  { city: "Miami",         country: "USA",    flag: "🇺🇸", stadium: "Hard Rock Stadium",         cap: "65,326", estCost: "$3.0k–5.2k" },
+  { city: "Atlanta",       country: "USA",    flag: "🇺🇸", stadium: "Mercedes-Benz Stadium",     cap: "71,000", estCost: "$2.6k–4.5k" },
+  { city: "Houston",       country: "USA",    flag: "🇺🇸", stadium: "NRG Stadium",              cap: "72,220", estCost: "$2.7k–4.6k" },
+  { city: "Seattle",       country: "USA",    flag: "🇺🇸", stadium: "Lumen Field",              cap: "69,000", estCost: "$3.0k–5.0k" },
+  { city: "San Francisco", country: "USA",    flag: "🇺🇸", stadium: "Levi's Stadium",           cap: "68,500", estCost: "$3.8k–6.5k" },
+  { city: "Kansas City",   country: "USA",    flag: "🇺🇸", stadium: "Arrowhead Stadium",        cap: "73,000", estCost: "$2.5k–4.2k" },
+  { city: "Boston",        country: "USA",    flag: "🇺🇸", stadium: "Gillette Stadium",         cap: "65,878", estCost: "$3.2k–5.4k" },
+  { city: "Philadelphia",  country: "USA",    flag: "🇺🇸", stadium: "Lincoln Financial Field",  cap: "67,594", estCost: "$3.0k–5.0k" },
+  { city: "Vancouver",     country: "Canada", flag: "🇨🇦", stadium: "BC Place",                 cap: "54,500", estCost: "CAD 3.5k–6k" },
+  { city: "Toronto",       country: "Canada", flag: "🇨🇦", stadium: "BMO Field",                cap: "45,736", estCost: "CAD 3.2k–5.5k" },
+  { city: "Mexico City",   country: "Mexico", flag: "🇲🇽", stadium: "Estadio Azteca",           cap: "87,523", estCost: "$1.8k–3.2k" },
+  { city: "Guadalajara",   country: "Mexico", flag: "🇲🇽", stadium: "Estadio Akron",            cap: "49,850", estCost: "$1.6k–2.8k" },
+  { city: "Monterrey",     country: "Mexico", flag: "🇲🇽", stadium: "Estadio BBVA",             cap: "51,349", estCost: "$1.7k–3.0k" },
 ];
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -255,6 +255,9 @@ function AddTripForm({ userId, onClose, onSaved, onAskAgent }: {
                 <div style={{ fontWeight: selected ? 700 : 500 }}>{c.city}</div>
                 <div style={{ fontSize: 9, color: selected ? "#00c89699" : "#334155", marginTop: 1 }}>
                   {c.country}
+                </div>
+                <div style={{ fontSize: 8, color: selected ? "#00c89688" : "#1e2d50", marginTop: 3, letterSpacing: 0.3 }}>
+                  {c.estCost}
                 </div>
               </button>
             );

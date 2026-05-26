@@ -1,7 +1,7 @@
 "use client";
 // src/app/page.tsx — WorldCup Fan Command Center — Main tab layout
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import ChatPanel from "@/components/ChatPanel";
 import TripCard from "@/components/TripCard";
 import AlertsPanel from "@/components/AlertsPanel";
@@ -12,6 +12,27 @@ import { useLocation } from "@/hooks/useLocation";
 
 // Replace with Firebase Auth UID in production
 const DEMO_USER_ID = "demo-user";
+
+const WC_START = new Date("2026-06-11T18:00:00Z");
+const WC_END   = new Date("2026-07-19T00:00:00Z");
+
+function useTournamentPhase() {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  if (!now) return { days: 0, hrs: 0, mins: 0, secs: 0, isOn: false, isPost: false, mounted: false };
+  const ms    = WC_START.getTime() - now.getTime();
+  const isOn  = now >= WC_START && now <= WC_END;
+  const isPost = now > WC_END;
+  const days  = Math.max(0, Math.ceil(ms / 86400000));
+  const hrs   = Math.max(0, Math.floor((ms % 86400000) / 3600000));
+  const mins  = Math.max(0, Math.floor((ms % 3600000) / 60000));
+  const secs  = Math.max(0, Math.floor((ms % 60000) / 1000));
+  return { days, hrs, mins, secs, isOn, isPost, mounted: true };
+}
 
 type Tab = "chat" | "trips" | "alerts" | "fantasy" | "fixtures";
 
@@ -27,6 +48,7 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("chat");
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const { location, detecting, setLocation, detectByIP, detectByGPS } = useLocation();
+  const { days, hrs, mins, secs, isOn, isPost, mounted: phaseMounted } = useTournamentPhase();
 
   const handleAskAgent = useCallback((prompt: string) => {
     setPendingPrompt(prompt);
@@ -131,6 +153,56 @@ export default function Home() {
           </button>
         ))}
       </nav>
+
+      {/* Tournament Status Bar — client-only to avoid hydration mismatch */}
+      {phaseMounted && !isPost && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "5px 16px",
+          background: isOn ? "#0a1a0f" : "#060b14",
+          borderBottom: `1px solid ${isOn ? "#00c89633" : "#1e2d5088"}`,
+          flexShrink: 0, overflowX: "auto",
+          scrollbarWidth: "none",
+        }}>
+          {isOn ? (
+            <>
+              <span style={{
+                width: 7, height: 7, borderRadius: "50%", background: "#00c896",
+                flexShrink: 0, boxShadow: "0 0 8px #00c896", animation: "pulse 1.5s ease infinite",
+              }} />
+              <span style={{ color: "#00c896", fontSize: 10, fontWeight: 700, letterSpacing: 1, flexShrink: 0 }}>LIVE</span>
+            </>
+          ) : (
+            <>
+              <span style={{ color: "#64748b", fontSize: 10, letterSpacing: 0.5, flexShrink: 0 }}>⚽ KICK-OFF IN</span>
+              {[{ v: days, u: "d" }, { v: hrs, u: "h" }, { v: mins, u: "m" }, { v: secs, u: "s" }].map(({ v, u }) => (
+                <div key={u} style={{ display: "flex", alignItems: "baseline", gap: 2, flexShrink: 0 }}>
+                  <span suppressHydrationWarning style={{
+                    color: "#f1f5f9", fontSize: 13, fontWeight: 800,
+                    minWidth: u === "s" ? 22 : u === "m" ? 22 : u === "h" ? 18 : 28, textAlign: "right",
+                  }}>
+                    {String(v).padStart(2, "0")}
+                  </span>
+                  <span style={{ color: "#334155", fontSize: 9 }}>{u}</span>
+                </div>
+              ))}
+            </>
+          )}
+          <div style={{ width: 1, height: 12, background: "#1e2d50", flexShrink: 0, marginLeft: 4 }} />
+          <span style={{ color: "#334155", fontSize: 9, whiteSpace: "nowrap", flexShrink: 0 }}>
+            🇺🇸 USA · 🇨🇦 Canada · 🇲🇽 Mexico · Jun 11 – Jul 19
+          </span>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexShrink: 0 }}>
+            {["New York", "Mexico City", "LA", "Dallas"].map((city) => (
+              <span key={city} style={{
+                fontSize: 9, padding: "1px 7px", borderRadius: 20,
+                background: "#0a0f1e", border: "1px solid #1e2d50", color: "#64748b",
+                whiteSpace: "nowrap",
+              }}>{city}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Panel area */}
       <main style={{ flex: 1, overflow: "hidden", position: "relative", zIndex: 1 }}>

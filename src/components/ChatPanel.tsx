@@ -54,6 +54,37 @@ function SkillBadge({ skillId }: { skillId: string }) {
   );
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      try {
+        const el = document.createElement("textarea");
+        el.value = text;
+        el.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+        document.body.appendChild(el);
+        el.focus(); el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      } catch { /* silent in restricted environments */ }
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+  return (
+    <button onClick={copy} title="Copy response" style={{
+      padding: "2px 7px", borderRadius: 6, border: "1px solid #1e2d50",
+      background: "transparent", color: copied ? "#00c896" : "#334155",
+      fontSize: 10, cursor: "pointer", fontFamily: "inherit",
+      transition: "all 0.15s", flexShrink: 0,
+    }}>
+      {copied ? "✓ copied" : "⎘"}
+    </button>
+  );
+}
+
 function MessageBubble({ msg }: { msg: Message }) {
   const isAgent = msg.role === "agent";
   return (
@@ -126,9 +157,14 @@ function MessageBubble({ msg }: { msg: Message }) {
           </div>
         )}
 
-        <span style={{ fontSize: 10, color: "#334155", fontFamily: "inherit" }}>
-          {formatTime(msg.timestamp)}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 10, color: "#334155", fontFamily: "inherit" }}>
+            {formatTime(msg.timestamp)}
+          </span>
+          {isAgent && !msg.isStreaming && msg.content.length > 20 && (
+            <CopyButton text={msg.content} />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -142,9 +178,16 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ userId, userLocation, initialPrompt, onPromptConsumed }: ChatPanelProps) {
+  const daysToWC = Math.max(0, Math.ceil((new Date("2026-06-11").getTime() - Date.now()) / 86400000));
+  const wcIsOn = Date.now() >= new Date("2026-06-11").getTime() && Date.now() <= new Date("2026-07-19").getTime();
+
+  const welcomeContent = wcIsOn
+    ? "🔴 **World Cup 2026 is LIVE!**\n\nI'm your real-time AI co-pilot for the biggest sporting event on Earth.\n\nAsk me:\n📡  What's the score right now?\n🎟  Which matches still have tickets?\n🏨  Last-minute hotels near stadiums\n⚽  Group standings & knockout predictions\n🏆  Fantasy advice for today's matches\n\nWhat do you need?"
+    : `⚽ **World Cup 2026 — ${daysToWC} days to kick-off!**\n\nI'm your AI travel and logistics agent for the 2026 FIFA World Cup across the USA, Canada, and Mexico.\n\nI can help you:\n✈  Plan your complete match trip (flights, hotels, itinerary)\n📋  Check visa & entry requirements for your passport\n🏨  Find hotels near all 16 stadiums\n🔔  Set flight price alerts — get notified when fares drop\n📊  View group standings & knockout bracket predictions\n🏆  Build your fantasy squad from 33 WC 2026 stars\n\nWhere are you flying from, and which match are you hoping to attend?`;
+
   const [messages, setMessages] = useState<Message[]>([{
     id: "welcome", role: "agent", timestamp: new Date(), skillId: "SK-01",
-    content: "⚽ Welcome to the WorldCup Fan Command Center!\n\nI'm your AI travel and logistics agent for the 2026 FIFA World Cup across the USA, Canada, and Mexico.\n\nI can help you:\n✈  Plan your complete match trip\n📋  Check visa & entry requirements\n🏨  Find hotels near stadiums\n🔔  Set flight price alerts\n🌤  Check city weather & what to pack\n⚽  Get fantasy league advice\n\nWhere are you flying from, and which match are you hoping to attend?",
+    content: welcomeContent,
   }]);
 
   const [input, setInput] = useState("");

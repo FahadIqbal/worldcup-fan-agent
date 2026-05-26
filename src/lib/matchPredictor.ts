@@ -147,6 +147,92 @@ interface Factor {
   detail: string;
 }
 
+// ─── Group Standings Simulation ────────────────────────────────────────────
+
+export interface GroupStanding {
+  team: TeamInfo;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  gf: number;
+  ga: number;
+  gd: number;
+  pts: number;
+}
+
+export function computeGroupStandings(teamCodes: string[]): GroupStanding[] {
+  const teams = teamCodes.map((c) => TEAMS[c.toUpperCase()]).filter(Boolean) as TeamInfo[];
+  const map = new Map<string, GroupStanding>();
+  for (const t of teams) {
+    map.set(t.code, { team: t, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, pts: 0 });
+  }
+  for (let i = 0; i < teams.length; i++) {
+    for (let j = i + 1; j < teams.length; j++) {
+      const t1 = teams[i];
+      const t2 = teams[j];
+      const pred = predictMatch(t1, t2);
+      const s1 = map.get(t1.code)!;
+      const s2 = map.get(t2.code)!;
+      s1.played++; s2.played++;
+      const isDraw = pred.draw > pred.team1Win && pred.draw > pred.team2Win;
+      if (isDraw) {
+        const g = pred.draw >= 32 ? 1 : 2;
+        s1.drawn++; s1.pts++; s1.gf += g; s1.ga += g;
+        s2.drawn++; s2.pts++; s2.gf += g; s2.ga += g;
+      } else if (pred.team1Win > pred.team2Win) {
+        const margin = pred.team1Win >= 68 ? 2 : 1;
+        s1.won++; s1.pts += 3; s1.gf += margin + 1; s1.ga += 1;
+        s2.lost++; s2.gf += 1; s2.ga += margin + 1;
+      } else {
+        const margin = pred.team2Win >= 68 ? 2 : 1;
+        s2.won++; s2.pts += 3; s2.gf += margin + 1; s2.ga += 1;
+        s1.lost++; s1.gf += 1; s1.ga += margin + 1;
+      }
+    }
+  }
+  for (const s of map.values()) s.gd = s.gf - s.ga;
+  return Array.from(map.values()).sort((a, b) =>
+    b.pts !== a.pts ? b.pts - a.pts : b.gd !== a.gd ? b.gd - a.gd : b.gf - a.gf
+  );
+}
+
+// ─── Knockout Bracket Simulation ────────────────────────────────────────────
+
+export interface BracketMatch {
+  team1: TeamInfo;
+  team2: TeamInfo;
+  prediction: MatchPrediction;
+  winner: TeamInfo;
+}
+
+export interface KnockoutBracket {
+  qf: [BracketMatch, BracketMatch, BracketMatch, BracketMatch];
+  sf: [BracketMatch, BracketMatch];
+  final: BracketMatch;
+  champion: TeamInfo;
+}
+
+function bMatchup(t1: TeamInfo, t2: TeamInfo): BracketMatch {
+  const prediction = predictMatch(t1, t2, { isKnockout: true });
+  const winner = prediction.team1Win >= prediction.team2Win ? t1 : t2;
+  return { team1: t1, team2: t2, prediction, winner };
+}
+
+export function simulateKnockoutBracket(seeds?: TeamInfo[]): KnockoutBracket {
+  const s = seeds ?? TEAM_ARRAY.slice(0, 8);
+  const qf1 = bMatchup(s[0], s[7]);
+  const qf2 = bMatchup(s[3], s[4]);
+  const qf3 = bMatchup(s[1], s[6]);
+  const qf4 = bMatchup(s[2], s[5]);
+  const sf1 = bMatchup(qf1.winner, qf2.winner);
+  const sf2 = bMatchup(qf3.winner, qf4.winner);
+  const final = bMatchup(sf1.winner, sf2.winner);
+  return { qf: [qf1, qf2, qf3, qf4], sf: [sf1, sf2], final, champion: final.winner };
+}
+
+// ─── Head-to-Head breakdown ───────────────────────────────────────────────
+
 export function headToHead(code1: string, code2: string): HeadToHeadResult | null {
   const team1 = TEAMS[code1.toUpperCase()];
   const team2 = TEAMS[code2.toUpperCase()];
