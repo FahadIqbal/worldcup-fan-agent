@@ -2,10 +2,11 @@
 const nextConfig = {
   output: "standalone",
 
-  // Enables src/instrumentation.ts → Arize Phoenix OTel tracing on startup
-  instrumentationHook: true,
-
   experimental: {
+    // Enables src/instrumentation.ts → Arize Phoenix OTel tracing on startup
+    // (key is top-level in Next.js 15+, still under experimental in 14.x)
+    instrumentationHook: true,
+
     // Next.js 14.x key — renamed to serverExternalPackages in Next.js 15+
     serverComponentsExternalPackages: [
       "@google-cloud/vertexai",
