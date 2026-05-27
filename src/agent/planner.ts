@@ -35,21 +35,73 @@ export interface AgentResponse {
   tokensUsed: number;
 }
 
-// ─── Vertex AI setup ───────────────────────────────────────────────────────
+// ─── Model setup (Gemini API key → Vertex AI fallback) ─────────────────────
+// Prefer the direct Gemini API (GEMINI_API_KEY) — it works without Vertex AI
+// Publisher Model access being manually enabled in the Console.
+// Falls back to Vertex AI when only GCP ADC is available.
 
-function getModel() {
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Thin adapter so the rest of the code can call a single interface
+interface GeminiChat {
+  sendMessage(msg: string): Promise<{
+    response: {
+      candidates?: Array<{ content: { parts: Array<{ text?: string }> } }>;
+      usageMetadata?: { totalTokenCount?: number };
+    };
+  }>;
+}
+
+function getModel(): {
+  startChat(opts: { history: Array<{ role: string; parts: Array<{ text: string }> }> }): GeminiChat;
+} {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const modelName = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  const maxOutputTokens = parseInt(process.env.GEMINI_MAX_OUTPUT_TOKENS ?? "4096");
+  const temperature = parseFloat(process.env.GEMINI_TEMPERATURE ?? "0.3");
+
+  if (apiKey) {
+    // ── Google AI Studio / Gemini API ──────────────────────────────────────
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const genModel = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: { maxOutputTokens, temperature, topP: 0.8 },
+    });
+    return {
+      startChat(opts) {
+        const chat = genModel.startChat({
+          history: opts.history.map((h) => ({
+            role: h.role as "user" | "model",
+            parts: h.parts.map((p) => ({ text: p.text })),
+          })),
+        });
+        return {
+          async sendMessage(msg: string) {
+            const res = await chat.sendMessage(msg);
+            const text = res.response.text();
+            return {
+              response: {
+                candidates: [{ content: { parts: [{ text }] } }],
+                usageMetadata: {
+                  totalTokenCount: res.response.usageMetadata?.totalTokenCount,
+                },
+              },
+            };
+          },
+        };
+      },
+    };
+  }
+
+  // ── Vertex AI (requires Publisher Model access in GCP Console) ────────────
   const vertex = new VertexAI({
     project: process.env.GCP_PROJECT_ID!,
     location: process.env.GCP_REGION ?? "us-central1",
   });
   return vertex.getGenerativeModel({
-    model: process.env.GEMINI_MODEL ?? "gemini-1.5-pro-002",
-    generationConfig: {
-      maxOutputTokens: parseInt(process.env.GEMINI_MAX_OUTPUT_TOKENS ?? "4096"),
-      temperature: parseFloat(process.env.GEMINI_TEMPERATURE ?? "0.3"),
-      topP: 0.8,
-    },
-  });
+    model: modelName,
+    generationConfig: { maxOutputTokens, temperature, topP: 0.8 },
+  }) as ReturnType<typeof getModel>;
 }
 
 // ─── Main entry point ──────────────────────────────────────────────────────
@@ -131,8 +183,20 @@ export async function runFanAgent(
     }
   } catch (err) {
     const errStr = String(err);
-    // Vertex AI not authenticated locally — answer with Tavily live search instead
-    if (errStr.includes("GoogleAuthError") || errStr.includes("Unable to authenticate") || !process.env.GCP_PROJECT_ID) {
+    // Fall back to Tavily live search when:
+    // - Vertex AI auth is missing locally
+    // - Publisher Model 404 (project hasn't enabled Vertex AI generative models in Console)
+    // - No GCP project configured
+    const isMissingCreds =
+      errStr.includes("GoogleAuthError") ||
+      errStr.includes("Unable to authenticate") ||
+      !process.env.GCP_PROJECT_ID;
+    const isModelNotFound =
+      errStr.includes("NOT_FOUND") ||
+      errStr.includes("was not found") ||
+      errStr.includes("does not have access to it");
+
+    if (isMissingCreds || isModelNotFound) {
       result = await tavilyFallbackResponse(primarySkill, req.message, req.userLocation, onToken);
     } else {
       const msg = `I ran into an issue: ${errStr}\n\nPlease try again.`;
@@ -399,7 +463,7 @@ async function tavilyFallbackResponse(
       text += "---\n\n";
     }
 
-    text += `*Powered by Tavily live search · Connect Google Cloud credentials for the full Gemini 1.5 Pro agentic experience.*`;
+    text += `*Powered by Tavily live search · Add a GEMINI_API_KEY for the full Gemini 2.0 Flash agentic experience.*`;
   }
 
   if (onToken) {
