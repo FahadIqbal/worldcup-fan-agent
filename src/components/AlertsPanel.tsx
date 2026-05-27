@@ -39,10 +39,10 @@ function PriceBar({ current, max, currency }: { current: number | null; max: num
     return (
       <div style={{ marginTop: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
-          <span style={{ color: "#64748b" }}>Current price</span>
-          <span style={{ color: "#334155" }}>Not checked yet</span>
+          <span style={{ color: "var(--text3)" }}>Current price</span>
+          <span style={{ color: "var(--text4)" }}>Not checked yet</span>
         </div>
-        <div style={{ height: 5, borderRadius: 4, background: "#1e2d50" }} />
+        <div style={{ height: 5, borderRadius: 4, background: "var(--border)" }} />
       </div>
     );
   }
@@ -51,38 +51,38 @@ function PriceBar({ current, max, currency }: { current: number | null; max: num
   const below = current <= max;
   const diff = Math.abs(current - max);
   const diffPct = Math.round((diff / max) * 100);
-  const barColor = below ? "#00c896" : pct > 120 ? "#ef4444" : "#f59e0b";
+  const barColor = below ? "var(--accent)" : pct > 120 ? "var(--red)" : "var(--orange)";
 
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
-        <span style={{ color: "#64748b" }}>
+        <span style={{ color: "var(--text3)" }}>
           Current: <strong style={{ color: barColor }}>
             {currency} {current.toLocaleString()}
           </strong>
         </span>
-        <span style={{ color: below ? "#00c896" : "#f59e0b", fontWeight: 600 }}>
+        <span style={{ color: below ? "var(--accent)" : "var(--orange)", fontWeight: 600 }}>
           {below ? `🎉 ${diffPct}% below target` : `▲ ${diffPct}% above target`}
         </span>
       </div>
 
-      <div style={{ height: 6, borderRadius: 4, background: "#0a0f1e", border: "1px solid #1e2d50", overflow: "hidden", position: "relative" }}>
+      <div style={{ height: 6, borderRadius: 4, background: "var(--bg)", border: "1px solid var(--border)", overflow: "hidden", position: "relative" }}>
         {/* Target marker */}
         <div style={{
           position: "absolute", top: 0, bottom: 0, left: `${Math.min(100, (max / (max * 1.4)) * 100)}%`,
-          width: 2, background: "#64748b88",
+          width: 2, background: "var(--text4)",
         }} />
         <div style={{
           height: "100%", width: `${Math.min(100, pct)}%`,
           background: `linear-gradient(90deg, ${barColor}88, ${barColor})`,
           borderRadius: 4, transition: "width 0.8s ease",
-          boxShadow: below ? "0 0 6px #00c89666" : undefined,
+          boxShadow: below ? "0 0 6px var(--accent-glow)" : undefined,
         }} />
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#334155", marginTop: 3 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text4)", marginTop: 3 }}>
         <span>$0</span>
-        <span style={{ color: "#64748b" }}>Target: {currency} {max.toLocaleString()}</span>
+        <span style={{ color: "var(--text3)" }}>Target: {currency} {max.toLocaleString()}</span>
       </div>
     </div>
   );
@@ -125,21 +125,21 @@ function AddAlertForm({
   };
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", background: "#0a0f1e", border: "1px solid #1e2d50",
-    borderRadius: 8, padding: "8px 10px", color: "#e2e8f0", fontSize: 12,
+    width: "100%", background: "var(--bg)", border: "1px solid var(--border)",
+    borderRadius: 8, padding: "8px 10px", color: "var(--text)", fontSize: 12,
     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
   };
 
   if (saved) {
     return (
       <div style={{
-        background: "#0a1a12", border: "1px solid #00c89633", borderRadius: 14,
+        background: "var(--accent-dim)", border: "1px solid var(--accent-border)", borderRadius: 14,
         padding: "24px 18px", marginBottom: 20, textAlign: "center",
         animation: "slideDown 0.2s ease",
       }}>
         <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
-        <div style={{ color: "#00c896", fontSize: 13, fontWeight: 600 }}>Alert saved!</div>
-        <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>
+        <div style={{ color: "var(--accent)", fontSize: 13, fontWeight: 600 }}>Alert saved!</div>
+        <div style={{ color: "var(--text3)", fontSize: 11, marginTop: 4 }}>
           We&apos;ll notify you when {origin.toUpperCase()} → {dest} drops below {currency} {Number(price).toLocaleString()}
         </div>
       </div>
@@ -148,24 +148,24 @@ function AddAlertForm({
 
   return (
     <div style={{
-      background: "#0d1a12", border: "1px solid #00c89633", borderRadius: 14,
+      background: "var(--surface)", border: "1px solid var(--accent-border)", borderRadius: 14,
       padding: "16px 18px", marginBottom: 20,
       animation: "slideDown 0.2s ease",
     }}>
-      <div style={{ color: "#00c896", fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
+      <div style={{ color: "var(--accent)", fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
         🔔 Track a new route
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
         <div>
-          <div style={{ color: "#64748b", fontSize: 10, marginBottom: 4 }}>From</div>
+          <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 4 }}>From</div>
           <input
             value={origin} onChange={(e) => setOrigin(e.target.value)}
             placeholder="Kuala Lumpur" style={inputStyle}
           />
         </div>
         <div>
-          <div style={{ color: "#64748b", fontSize: 10, marginBottom: 4 }}>To (host city)</div>
+          <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 4 }}>To (host city)</div>
           <input
             value={dest} onChange={(e) => setDest(e.target.value)}
             placeholder="New York" style={inputStyle}
@@ -175,7 +175,7 @@ function AddAlertForm({
 
       <div style={{ display: "grid", gridTemplateColumns: "80px 1fr", gap: 8, marginBottom: 12 }}>
         <div>
-          <div style={{ color: "#64748b", fontSize: 10, marginBottom: 4 }}>Currency</div>
+          <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 4 }}>Currency</div>
           <select
             value={currency} onChange={(e) => setCurrency(e.target.value)}
             style={{ ...inputStyle, cursor: "pointer" }}
@@ -186,7 +186,7 @@ function AddAlertForm({
           </select>
         </div>
         <div>
-          <div style={{ color: "#64748b", fontSize: 10, marginBottom: 4 }}>Alert me below</div>
+          <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 4 }}>Alert me below</div>
           <input
             type="number" value={price} onChange={(e) => setPrice(e.target.value)}
             placeholder="900" style={inputStyle}
@@ -195,7 +195,7 @@ function AddAlertForm({
       </div>
 
       {error && (
-        <div style={{ color: "#ef4444", fontSize: 11, marginBottom: 8 }}>{error}</div>
+        <div style={{ color: "var(--red)", fontSize: 11, marginBottom: 8 }}>{error}</div>
       )}
 
       <div style={{ display: "flex", gap: 8 }}>
@@ -203,7 +203,7 @@ function AddAlertForm({
           onClick={submit} disabled={saving || !origin || !dest || !price}
           style={{
             flex: 1, padding: "8px", borderRadius: 8, border: "none",
-            background: !saving && origin && dest && price ? "linear-gradient(135deg, #00c896, #0ea5e9)" : "#1e2d50",
+            background: !saving && origin && dest && price ? "linear-gradient(135deg, var(--accent), var(--blue))" : "var(--border)",
             color: "#fff", fontSize: 12,
             cursor: !saving && origin && dest && price ? "pointer" : "not-allowed",
             fontFamily: "inherit", fontWeight: 600,
@@ -214,8 +214,8 @@ function AddAlertForm({
         <button
           onClick={onClose} disabled={saving}
           style={{
-            padding: "8px 14px", borderRadius: 8, border: "1px solid #1e2d50",
-            background: "transparent", color: "#64748b", fontSize: 12,
+            padding: "8px 14px", borderRadius: 8, border: "1px solid var(--border)",
+            background: "transparent", color: "var(--text3)", fontSize: 12,
             cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit",
           }}
         >
@@ -229,8 +229,8 @@ function AddAlertForm({
             `Check current flight prices from ${origin} to ${dest} for the World Cup 2026 travel window (June–July 2026). My target budget is ${currency} ${price}.`
           )}
           style={{
-            width: "100%", padding: "6px", borderRadius: 8, border: "1px solid #0ea5e944",
-            background: "transparent", color: "#0ea5e9", fontSize: 11,
+            width: "100%", padding: "6px", borderRadius: 8, border: "1px solid var(--blue-dim)",
+            background: "transparent", color: "var(--blue)", fontSize: 11,
             cursor: "pointer", fontFamily: "inherit", marginTop: 6,
           }}
         >
@@ -248,12 +248,12 @@ function AlertRow({ alert, onDelete, deletingId, refreshing }: {
   refreshing: boolean;
 }) {
   const isDeleting = deletingId === alert.id;
-  const pulseColor = alert.triggered ? "#00c896" : alert.active ? "#0ea5e9" : "#64748b";
+  const pulseColor = alert.triggered ? "var(--accent)" : alert.active ? "var(--blue)" : "var(--text3)";
 
   return (
     <div style={{
-      background: alert.triggered ? "#0a1a0f" : "#0d1421",
-      border: `1px solid ${alert.triggered ? "#00c89644" : alert.active ? "#0ea5e922" : "#1e2d50"}`,
+      background: alert.triggered ? "var(--accent-dim)" : "var(--surface)",
+      border: `1px solid ${alert.triggered ? "var(--accent-border)" : alert.active ? "var(--blue-dim)" : "var(--border)"}`,
       borderRadius: 12, padding: "14px 16px",
       transition: "border-color 0.3s",
     }}>
@@ -267,26 +267,26 @@ function AlertRow({ alert, onDelete, deletingId, refreshing }: {
               boxShadow: alert.active && !alert.triggered ? `0 0 6px ${pulseColor}` : undefined,
               animation: alert.active && !alert.triggered ? "monitorPulse 2s ease infinite" : undefined,
             }} />
-            <span style={{ color: "#f1f5f9", fontSize: 14, fontWeight: 700 }}>
+            <span style={{ color: "var(--text)", fontSize: 14, fontWeight: 700 }}>
               ✈ {alert.route_origin} → {alert.route_dest}
             </span>
           </div>
 
           {alert.depart_from && (
-            <div style={{ color: "#64748b", fontSize: 11, marginBottom: 4, marginLeft: 15 }}>
+            <div style={{ color: "var(--text3)", fontSize: 11, marginBottom: 4, marginLeft: 15 }}>
               Window: {alert.depart_from}{alert.depart_to ? ` – ${alert.depart_to}` : ""}
             </div>
           )}
 
-          <div style={{ fontSize: 11, color: "#64748b", marginLeft: 15, marginBottom: 2 }}>
-            Target: <strong style={{ color: "#e2e8f0" }}>
+          <div style={{ fontSize: 11, color: "var(--text3)", marginLeft: 15, marginBottom: 2 }}>
+            Target: <strong style={{ color: "var(--text)" }}>
               {alert.currency} {Number(alert.max_price).toLocaleString()}
             </strong>
           </div>
 
           <PriceBar current={alert.current_price} max={Number(alert.max_price)} currency={alert.currency} />
 
-          <div style={{ fontSize: 10, color: "#334155", marginTop: 6, display: "flex", gap: 12 }}>
+          <div style={{ fontSize: 10, color: "var(--text4)", marginTop: 6, display: "flex", gap: 12 }}>
             <span>Checked: {refreshing ? "⏳ checking…" : relativeTime(alert.last_checked)}</span>
             <span>Created: {new Date(alert.created_at).toLocaleDateString()}</span>
           </div>
@@ -296,13 +296,13 @@ function AlertRow({ alert, onDelete, deletingId, refreshing }: {
           onClick={() => onDelete(alert.id)} disabled={isDeleting}
           title="Remove alert"
           style={{
-            padding: "4px 8px", borderRadius: 6, border: "1px solid #1e2d50",
-            background: "transparent", color: "#64748b", fontSize: 12,
+            padding: "4px 8px", borderRadius: 6, border: "1px solid var(--border)",
+            background: "transparent", color: "var(--text3)", fontSize: 12,
             cursor: isDeleting ? "not-allowed" : "pointer", flexShrink: 0,
             transition: "all 0.15s",
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#ef4444"; (e.currentTarget as HTMLElement).style.color = "#ef4444"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d50"; (e.currentTarget as HTMLElement).style.color = "#64748b"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--red)"; (e.currentTarget as HTMLElement).style.color = "var(--red)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.color = "var(--text3)"; }}
         >
           {isDeleting ? "…" : "✕"}
         </button>
@@ -364,12 +364,12 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
 
   if (loading) {
     return (
-      <div style={{ padding: "20px 16px", fontFamily: "'DM Mono', monospace" }}>
+      <div style={{ padding: "20px 16px", fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}>
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
           {[1, 2].map((i) => (
-            <div key={i} style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 12, padding: "16px", marginBottom: 10 }}>
+            <div key={i} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px", marginBottom: 10 }}>
               {[70, 50, 90].map((w, j) => (
-                <div key={j} style={{ height: 10, width: `${w}%`, background: "#1e2d50", borderRadius: 4, marginBottom: 8, animation: "shimmer 1.5s ease infinite" }} />
+                <div key={j} style={{ height: 10, width: `${w}%`, background: "var(--border)", borderRadius: 4, marginBottom: 8, animation: "shimmer 1.5s ease infinite" }} />
               ))}
             </div>
           ))}
@@ -383,18 +383,18 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
   const inactive = alerts.filter((a) => !a.active && !a.triggered);
 
   return (
-    <div style={{ padding: "20px 16px", overflowY: "auto", height: "100%", fontFamily: "'DM Mono', monospace" }}>
+    <div style={{ padding: "20px 16px", overflowY: "auto", height: "100%", fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}>
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-          <h2 style={{ color: "#f1f5f9", fontSize: 16, fontWeight: 600, margin: 0, flex: 1 }}>
+          <h2 style={{ color: "var(--text)", fontSize: 16, fontWeight: 600, margin: 0, flex: 1 }}>
             Price Alerts
           </h2>
           {triggered.length > 0 && (
             <span style={{
               fontSize: 10, padding: "2px 8px", borderRadius: 20,
-              background: "#00c89622", color: "#00c896", border: "1px solid #00c89644",
+              background: "var(--accent-dim)", color: "var(--accent)", border: "1px solid var(--accent-border)",
               animation: "countPulse 1.5s ease infinite",
             }}>
               🎉 {triggered.length} triggered!
@@ -403,7 +403,7 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
           {active.length > 0 && (
             <span style={{
               fontSize: 10, padding: "2px 8px", borderRadius: 20,
-              background: "#0ea5e922", color: "#0ea5e9", border: "1px solid #0ea5e944",
+              background: "var(--blue-dim)", color: "var(--blue)", border: "1px solid var(--blue-dim)",
             }}>
               ● {active.length} monitoring
             </span>
@@ -412,22 +412,22 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
             onClick={refreshPrices} disabled={refreshing}
             title="Refresh all prices"
             style={{
-              padding: "4px 10px", borderRadius: 8, border: "1px solid #1e2d50",
-              background: "transparent", color: "#64748b", fontSize: 11,
+              padding: "4px 10px", borderRadius: 8, border: "1px solid var(--border)",
+              background: "transparent", color: "var(--text3)", fontSize: 11,
               cursor: refreshing ? "not-allowed" : "pointer", fontFamily: "inherit",
               transition: "all 0.15s",
             }}
-            onMouseEnter={(e) => { if (!refreshing) { (e.currentTarget as HTMLElement).style.borderColor = "#0ea5e9"; (e.currentTarget as HTMLElement).style.color = "#0ea5e9"; } }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d50"; (e.currentTarget as HTMLElement).style.color = "#64748b"; }}
+            onMouseEnter={(e) => { if (!refreshing) { (e.currentTarget as HTMLElement).style.borderColor = "var(--blue)"; (e.currentTarget as HTMLElement).style.color = "var(--blue)"; } }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.color = "var(--text3)"; }}
           >
             {refreshing ? "⏳ checking…" : "↺ Refresh"}
           </button>
           <button
             onClick={() => setShowForm((v) => !v)}
             style={{
-              padding: "4px 12px", borderRadius: 20, border: "1px solid #00c89666",
-              background: showForm ? "#00c89622" : "transparent",
-              color: "#00c896", fontSize: 11,
+              padding: "4px 12px", borderRadius: 20, border: "1px solid var(--accent-border)",
+              background: showForm ? "var(--accent-dim)" : "transparent",
+              color: "var(--accent)", fontSize: 11,
               cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
               transition: "all 0.15s",
             }}
@@ -449,16 +449,16 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
         {/* Empty state */}
         {alerts.length === 0 && !showForm && (
           <div style={{ padding: "40px 20px", textAlign: "center" }}>
-            <div style={{ fontSize: 52, marginBottom: 16, filter: "drop-shadow(0 0 16px #0ea5e933)" }}>🔔</div>
-            <div style={{ color: "#f1f5f9", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>No price alerts yet</div>
-            <div style={{ color: "#64748b", fontSize: 12, maxWidth: 280, margin: "0 auto 20px", lineHeight: 1.6 }}>
+            <div style={{ fontSize: 52, marginBottom: 16, filter: "drop-shadow(0 0 16px var(--blue-dim))" }}>🔔</div>
+            <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>No price alerts yet</div>
+            <div style={{ color: "var(--text3)", fontSize: 12, maxWidth: 280, margin: "0 auto 20px", lineHeight: 1.6 }}>
               Track flight prices to World Cup host cities. Get notified when they drop below your target.
             </div>
             <button
               onClick={() => setShowForm(true)}
               style={{
-                padding: "10px 20px", borderRadius: 20, border: "1px solid #0ea5e9",
-                background: "#0ea5e922", color: "#0ea5e9", fontSize: 12,
+                padding: "10px 20px", borderRadius: 20, border: "1px solid var(--blue)",
+                background: "var(--blue-dim)", color: "var(--blue)", fontSize: 12,
                 cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
               }}
             >
@@ -470,7 +470,7 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
         {/* Triggered */}
         {triggered.length > 0 && (
           <div style={{ marginBottom: 24 }}>
-            <div style={{ color: "#00c896", fontSize: 11, marginBottom: 10, fontWeight: 600 }}>
+            <div style={{ color: "var(--accent)", fontSize: 11, marginBottom: 10, fontWeight: 600 }}>
               🎉 TRIGGERED — BOOK NOW
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -484,7 +484,7 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
         {/* Active */}
         {active.length > 0 && (
           <div style={{ marginBottom: 24 }}>
-            <div style={{ color: "#64748b", fontSize: 11, marginBottom: 10 }}>
+            <div style={{ color: "var(--text3)", fontSize: 11, marginBottom: 10 }}>
               ● MONITORING ({active.length})
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -498,7 +498,7 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
         {/* Inactive */}
         {inactive.length > 0 && (
           <div style={{ marginBottom: 24 }}>
-            <div style={{ color: "#334155", fontSize: 11, marginBottom: 10 }}>⏸ INACTIVE</div>
+            <div style={{ color: "var(--text4)", fontSize: 11, marginBottom: 10 }}>⏸ INACTIVE</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {inactive.map((a) => (
                 <AlertRow key={a.id} alert={a} onDelete={deactivate} deletingId={deletingId} refreshing={refreshing} />
@@ -509,8 +509,8 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
 
         {/* Popular routes */}
         {alerts.length === 0 && !showForm && (
-          <div style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
-            <div style={{ color: "#64748b", fontSize: 10, marginBottom: 10, letterSpacing: 1 }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+            <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 10, letterSpacing: 1 }}>
               🌍 POPULAR WC 2026 ROUTES
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -525,21 +525,21 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
                 <button key={from} onClick={() => { setShowForm(true); }} style={{
                   display: "flex", alignItems: "center", gap: 10,
                   padding: "8px 12px", borderRadius: 8,
-                  background: "#0a0f1e", border: "1px solid #1e2d50",
+                  background: "var(--bg)", border: "1px solid var(--border)",
                   cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                   transition: "all 0.15s",
                 }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#0ea5e944"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d50"; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--blue-dim)"; (e.currentTarget as HTMLElement).style.background = "var(--surface2)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.background = "var(--bg)"; }}
                 >
                   <span style={{ fontSize: 14 }}>✈</span>
                   <div style={{ flex: 1 }}>
-                    <span style={{ color: "#e2e8f0", fontSize: 11, fontWeight: 600 }}>{from}</span>
-                    <span style={{ color: "#334155", fontSize: 11 }}> → </span>
-                    <span style={{ color: "#0ea5e9", fontSize: 11, fontWeight: 600 }}>{to}</span>
+                    <span style={{ color: "var(--text)", fontSize: 11, fontWeight: 600 }}>{from}</span>
+                    <span style={{ color: "var(--text4)", fontSize: 11 }}> → </span>
+                    <span style={{ color: "var(--blue)", fontSize: 11, fontWeight: 600 }}>{to}</span>
                   </div>
-                  <span style={{ color: "#64748b", fontSize: 10 }}>{est}</span>
-                  <span style={{ color: "#334155", fontSize: 11 }}>+</span>
+                  <span style={{ color: "var(--text3)", fontSize: 10 }}>{est}</span>
+                  <span style={{ color: "var(--text4)", fontSize: 11 }}>+</span>
                 </button>
               ))}
             </div>
@@ -549,20 +549,14 @@ export default function AlertsPanel({ userId, onAskAgent }: AlertsPanelProps) {
         {/* Tip */}
         {alerts.length > 0 && (
           <div style={{
-            padding: "10px 14px", borderRadius: 10, background: "#0a0f1e",
-            border: "1px solid #1e2d50", color: "#334155", fontSize: 11, lineHeight: 1.6,
+            padding: "10px 14px", borderRadius: 10, background: "var(--bg)",
+            border: "1px solid var(--border)", color: "var(--text3)", fontSize: 11, lineHeight: 1.6,
           }}>
             💡 Prices are checked every 6 hours. Click ↺ Refresh to check right now. Hit the triggered alerts fast — World Cup fares sell out quickly.
           </div>
         )}
       </div>
 
-      <style>{`
-        @keyframes shimmer { 0%,100%{opacity:0.4} 50%{opacity:0.8} }
-        @keyframes monitorPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
-        @keyframes countPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
-        @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
-      `}</style>
     </div>
   );
 }

@@ -96,7 +96,7 @@ function WCCountdown() {
         <div style={{ color: urgency, fontSize: 22, fontWeight: 800, lineHeight: 1, marginBottom: 2 }}>
           {days} days
         </div>
-        <div style={{ color: "#94a3b8", fontSize: 11 }}>
+        <div style={{ color: "var(--text2)", fontSize: 11 }}>
           until World Cup 2026 · June 11, USA / Canada / Mexico
         </div>
       </div>
@@ -116,7 +116,7 @@ function FormStars({ form }: { form: number | undefined }) {
   return (
     <span style={{ fontSize: 8, letterSpacing: -1 }}>
       {Array.from({ length: 5 }, (_, i) => (
-        <span key={i} style={{ color: i < filled ? "#f59e0b" : "#1e2d50" }}>★</span>
+        <span key={i} style={{ color: i < filled ? "#f59e0b" : "var(--border)" }}>★</span>
       ))}
     </span>
   );
@@ -125,7 +125,7 @@ function FormStars({ form }: { form: number | undefined }) {
 function RatingBar({ rating, posColor }: { rating: number; posColor: string }) {
   const pct = Math.round(((rating - 7.5) / 2.5) * 100); // maps 7.5–10 to 0–100%
   return (
-    <div style={{ width: "100%", height: 3, borderRadius: 2, background: "#1e2d50", overflow: "hidden", marginTop: 5 }}>
+    <div style={{ width: "100%", height: 3, borderRadius: 2, background: "var(--border)", overflow: "hidden", marginTop: 5 }}>
       <div style={{
         height: "100%", width: `${pct}%`, borderRadius: 2,
         background: `linear-gradient(90deg, ${posColor}66, ${posColor})`,
@@ -153,10 +153,12 @@ function PitchFormation({ players }: { players: FantasyPlayer[] }) {
       border: "1px solid #00c89622", borderRadius: 14,
       padding: "20px 12px", marginBottom: 18, position: "relative", overflow: "hidden",
     }}>
+      {/* Pitch center line */}
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         backgroundImage: "linear-gradient(transparent calc(50% - 1px), #00c89611 calc(50%), transparent calc(50% + 1px))",
       }} />
+      {/* Center circle */}
       <div style={{
         position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
         width: 60, height: 60, borderRadius: "50%", border: "1px solid #00c89611", pointerEvents: "none",
@@ -171,7 +173,7 @@ function PitchFormation({ players }: { players: FantasyPlayer[] }) {
             </div>
             <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
               {group.map((player) => {
-                const fitnessColor = player.fitness ? FITNESS_COLORS[player.fitness] : "#64748b";
+                const fitnessColor = player.fitness ? FITNESS_COLORS[player.fitness] : "var(--text3)";
                 return (
                   <div key={player.name} style={{
                     background: "#0a1a12ee", border: `1px solid ${player.isCaptain ? "#f59e0b" : "#00c89633"}`,
@@ -187,21 +189,21 @@ function PitchFormation({ players }: { players: FantasyPlayer[] }) {
                     )}
                     <div style={{
                       width: 26, height: 26, borderRadius: "50%", margin: "0 auto 5px",
-                      background: "linear-gradient(135deg, #00c896, #0ea5e9)",
+                      background: "linear-gradient(135deg, var(--accent), var(--blue))",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 10, fontWeight: 700, color: "#060b14",
+                      fontSize: 10, fontWeight: 700, color: "var(--bg)",
                     }}>
                       {player.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
                     </div>
-                    <div style={{ color: "#f1f5f9", fontSize: 10, fontWeight: 600, lineHeight: 1.2 }}>
+                    <div style={{ color: "var(--text)", fontSize: 10, fontWeight: 600, lineHeight: 1.2 }}>
                       {player.name.split(" ").slice(-1)[0]}
                     </div>
-                    <div style={{ color: "#64748b", fontSize: 9 }}>{player.team}</div>
+                    <div style={{ color: "var(--text3)", fontSize: 9 }}>{player.team}</div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, marginTop: 3 }}>
                       {player.fitness && (
                         <span style={{ width: 5, height: 5, borderRadius: "50%", background: fitnessColor, boxShadow: `0 0 3px ${fitnessColor}` }} />
                       )}
-                      {player.price && <span style={{ fontSize: 8, color: "#64748b" }}>${player.price}m</span>}
+                      {player.price && <span style={{ fontSize: 8, color: "var(--text3)" }}>${player.price}m</span>}
                     </div>
                   </div>
                 );
@@ -219,20 +221,20 @@ function BudgetDisplay({ budget, team }: { budget: number | null; team: FantasyP
   const cap = Number(budget);
   const spent = team.reduce((s, p) => s + (p.price ?? 0), 0);
   const pct = Math.min(100, Math.round((spent / cap) * 100));
-  const color = pct > 90 ? "#ef4444" : pct > 70 ? "#f59e0b" : "#00c896";
+  const color = pct > 90 ? "var(--red)" : pct > 70 ? "var(--orange)" : "var(--accent)";
   return (
-    <div style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 12, padding: "12px 16px", marginBottom: 16 }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px", marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 6 }}>
-        <span style={{ color: "#64748b" }}>Budget spent</span>
+        <span style={{ color: "var(--text3)" }}>Budget spent</span>
         <span style={{ color }}>
           ${spent.toFixed(1)}m / ${cap.toFixed(1)}m
-          <span style={{ color: "#64748b" }}> ({pct}%)</span>
+          <span style={{ color: "var(--text3)" }}> ({pct}%)</span>
         </span>
       </div>
-      <div style={{ height: 6, borderRadius: 4, background: "#0a0f1e", border: "1px solid #1e2d50", overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${pct}%`, borderRadius: 4, background: `linear-gradient(90deg, #00c896, ${color})`, transition: "width 0.5s ease" }} />
+      <div style={{ height: 6, borderRadius: 4, background: "var(--bg)", border: "1px solid var(--border)", overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${pct}%`, borderRadius: 4, background: `linear-gradient(90deg, var(--accent), ${color})`, transition: "width 0.5s ease" }} />
       </div>
-      <div style={{ fontSize: 10, color: "#334155", marginTop: 5 }}>${(cap - spent).toFixed(1)}m remaining</div>
+      <div style={{ fontSize: 10, color: "var(--text4)", marginTop: 5 }}>${(cap - spent).toFixed(1)}m remaining</div>
     </div>
   );
 }
@@ -316,35 +318,35 @@ function SquadBuilder({ userId, onSaved }: { userId: string; onSaved: (team: Fan
 
   return (
     <div style={{
-      background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 14,
+      background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14,
       overflow: "hidden", marginBottom: 18,
     }}>
       {/* Builder header */}
       <div style={{
         padding: "14px 18px",
-        background: "linear-gradient(135deg, #0a1a0f, #0d1421)",
-        borderBottom: "1px solid #1e2d50",
+        background: "linear-gradient(135deg, rgba(0,200,150,0.06), var(--surface))",
+        borderBottom: "1px solid var(--border)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
           <span style={{ fontSize: 18 }}>⚽</span>
-          <span style={{ color: "#f1f5f9", fontSize: 13, fontWeight: 700 }}>Build Your Squad</span>
-          <span style={{ color: "#64748b", fontSize: 11, marginLeft: "auto" }}>
+          <span style={{ color: "var(--text)", fontSize: 13, fontWeight: 700 }}>Build Your Squad</span>
+          <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: "auto" }}>
             {squad.length}/{SQUAD_SIZE} selected
           </span>
         </div>
 
         {/* Budget bar */}
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
-          <span style={{ color: "#64748b" }}>Budget</span>
-          <span style={{ color: remaining < 5 ? "#ef4444" : "#00c896" }}>
+          <span style={{ color: "var(--text3)" }}>Budget</span>
+          <span style={{ color: remaining < 5 ? "var(--red)" : "var(--accent)" }}>
             ${spent.toFixed(1)}m / $100m · <strong>${remaining.toFixed(1)}m left</strong>
           </span>
         </div>
-        <div style={{ height: 5, borderRadius: 4, background: "#0a0f1e", overflow: "hidden" }}>
+        <div style={{ height: 5, borderRadius: 4, background: "var(--bg)", overflow: "hidden" }}>
           <div style={{
             height: "100%", borderRadius: 4, transition: "width 0.3s",
             width: `${Math.min(100, (spent / BUDGET) * 100)}%`,
-            background: `linear-gradient(90deg, #00c896, ${spent / BUDGET > 0.9 ? "#ef4444" : "#0ea5e9"})`,
+            background: `linear-gradient(90deg, var(--accent), ${spent / BUDGET > 0.9 ? "var(--red)" : "var(--blue)"})`,
           }} />
         </div>
 
@@ -357,9 +359,9 @@ function SquadBuilder({ userId, onSaved }: { userId: string; onSaved: (team: Fan
             return (
               <span key={pos} style={{
                 fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 700,
-                background: count >= limit.min ? posColors[pos] + "22" : "#0a0f1e",
-                color: count >= limit.min ? posColors[pos] : "#334155",
-                border: `1px solid ${count >= limit.min ? posColors[pos] + "44" : "#1e2d50"}`,
+                background: count >= limit.min ? posColors[pos] + "22" : "var(--bg)",
+                color: count >= limit.min ? posColors[pos] : "var(--text4)",
+                border: `1px solid ${count >= limit.min ? posColors[pos] + "44" : "var(--border)"}`,
               }}>
                 {pos} {count}/{limit.max} {full ? "✓" : ""}
               </span>
@@ -377,18 +379,18 @@ function SquadBuilder({ userId, onSaved }: { userId: string; onSaved: (team: Fan
       </div>
 
       {/* Position tabs */}
-      <div style={{ display: "flex", borderBottom: "1px solid #1e2d50" }}>
+      <div style={{ display: "flex", borderBottom: "1px solid var(--border)" }}>
         {(["FWD", "MID", "DEF", "GK"] as const).map((pos) => (
           <button key={pos} onClick={() => setPosTab(pos)} style={{
             flex: 1, padding: "8px 4px", border: "none",
             borderBottom: posTab === pos ? `2px solid ${posColors[pos]}` : "2px solid transparent",
             background: "transparent",
-            color: posTab === pos ? posColors[pos] : "#64748b",
+            color: posTab === pos ? posColors[pos] : "var(--text3)",
             fontSize: 11, cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
             transition: "all 0.15s",
           }}>
             {pos}
-            <span style={{ fontSize: 9, marginLeft: 4, color: posTab === pos ? posColors[pos] + "aa" : "#334155" }}>
+            <span style={{ fontSize: 9, marginLeft: 4, color: posTab === pos ? posColors[pos] + "aa" : "var(--text4)" }}>
               {byPos(pos)}/{POS_LIMITS[pos].max}
             </span>
           </button>
@@ -407,8 +409,8 @@ function SquadBuilder({ userId, onSaved }: { userId: string; onSaved: (team: Fan
           return (
             <div key={p.name} onClick={() => toggle(p)} style={{
               padding: "10px 12px", borderRadius: 10,
-              border: `1px solid ${selected ? posColors[posTab] : "#1e2d50"}`,
-              background: selected ? posColors[posTab] + "14" : "#0a0f1e",
+              border: `1px solid ${selected ? posColors[posTab] : "var(--border)"}`,
+              background: selected ? posColors[posTab] + "14" : "var(--bg)",
               cursor: addable || selected ? "pointer" : "not-allowed",
               opacity: !addable && !selected ? 0.4 : 1,
               transition: "all 0.15s", position: "relative",
@@ -424,34 +426,34 @@ function SquadBuilder({ userId, onSaved }: { userId: string; onSaved: (team: Fan
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                 <div style={{
                   width: 28, height: 28, borderRadius: "50%", flexShrink: 0,
-                  background: selected ? posColors[posTab] + "33" : "#1e2d50",
+                  background: selected ? posColors[posTab] + "33" : "var(--border)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 13, border: `1px solid ${selected ? posColors[posTab] + "66" : "#2a3f60"}`,
+                  fontSize: 13, border: `1px solid ${selected ? posColors[posTab] + "66" : "var(--border2)"}`,
                 }}>
                   {p.flag}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: "#f1f5f9", fontSize: 11, fontWeight: 600, lineHeight: 1.2 }}>{p.name}</div>
-                  <div style={{ color: "#64748b", fontSize: 9 }}>{p.country}</div>
+                  <div style={{ color: "var(--text)", fontSize: 11, fontWeight: 600, lineHeight: 1.2 }}>{p.name}</div>
+                  <div style={{ color: "var(--text3)", fontSize: 9 }}>{p.country}</div>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 9, color: "#64748b" }}>Rtg {p.rating.toFixed(1)}</span>
+                <span style={{ fontSize: 9, color: "var(--text3)" }}>Rtg {p.rating.toFixed(1)}</span>
                 <span style={{ fontSize: 11, color: posColors[posTab], fontWeight: 700 }}>${p.price}m</span>
               </div>
               <RatingBar rating={p.rating} posColor={posColors[posTab]} />
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
                 <FormStars form={p.form} />
-                <span style={{ fontSize: 9, color: "#64748b" }}>
+                <span style={{ fontSize: 9, color: "var(--text3)" }}>
                   val {(p.rating / p.price).toFixed(2)}
                 </span>
               </div>
               {selected && (
                 <button onClick={(e) => { e.stopPropagation(); setCaptainName(p.name); }} style={{
                   marginTop: 6, width: "100%", padding: "3px", borderRadius: 6, fontSize: 9, fontWeight: 700,
-                  border: `1px solid ${isCap ? "#f59e0b" : "#1e2d50"}`,
+                  border: `1px solid ${isCap ? "#f59e0b" : "var(--border)"}`,
                   background: isCap ? "#f59e0b22" : "transparent",
-                  color: isCap ? "#f59e0b" : "#334155", cursor: "pointer", fontFamily: "inherit",
+                  color: isCap ? "#f59e0b" : "var(--text4)", cursor: "pointer", fontFamily: "inherit",
                   transition: "all 0.15s",
                 }}>
                   {isCap ? "© Captain" : "Make captain"}
@@ -463,12 +465,12 @@ function SquadBuilder({ userId, onSaved }: { userId: string; onSaved: (team: Fan
       </div>
 
       {/* Footer actions */}
-      <div style={{ padding: "12px 14px", borderTop: "1px solid #1e2d50" }}>
-        {error && <div style={{ color: "#ef4444", fontSize: 11, marginBottom: 8 }}>{error}</div>}
+      <div style={{ padding: "12px 14px", borderTop: "1px solid var(--border)" }}>
+        {error && <div style={{ color: "var(--red)", fontSize: 11, marginBottom: 8 }}>{error}</div>}
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={autoPick} style={{
-            padding: "8px 14px", borderRadius: 8, border: "1px solid #0ea5e944",
-            background: "#0ea5e911", color: "#0ea5e9", fontSize: 11,
+            padding: "8px 14px", borderRadius: 8, border: "1px solid var(--blue-dim)",
+            background: "var(--blue-dim)", color: "var(--blue)", fontSize: 11,
             cursor: "pointer", fontFamily: "inherit", fontWeight: 600,
           }}>
             ⚡ Auto-pick
@@ -476,8 +478,8 @@ function SquadBuilder({ userId, onSaved }: { userId: string; onSaved: (team: Fan
           <button onClick={save} disabled={saving || squad.length < SQUAD_SIZE} style={{
             flex: 1, padding: "8px", borderRadius: 8, border: "none",
             background: squad.length >= SQUAD_SIZE && !saving
-              ? "linear-gradient(135deg, #00c896, #0ea5e9)"
-              : "#1e2d50",
+              ? "linear-gradient(135deg, var(--accent), var(--blue))"
+              : "var(--border)",
             color: "#fff", fontSize: 12, fontWeight: 700,
             cursor: squad.length >= SQUAD_SIZE && !saving ? "pointer" : "not-allowed",
             fontFamily: "inherit",
@@ -531,11 +533,11 @@ export default function FantasyPanel({ userId, onAskAgent }: FantasyPanelProps) 
 
   if (loading) {
     return (
-      <div style={{ padding: "20px 16px", fontFamily: "'DM Mono', monospace" }}>
+      <div style={{ padding: "20px 16px", fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}>
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
-          <div style={{ height: 72, background: "#0d1a12", border: "1px solid #00c89622", borderRadius: 14, marginBottom: 18, animation: "shimmer 1.5s ease infinite" }} />
+          <div style={{ height: 72, background: "var(--accent-dim)", border: "1px solid var(--accent-border)", borderRadius: 14, marginBottom: 18, animation: "shimmer 1.5s ease infinite" }} />
           {[1, 2, 3].map((i) => (
-            <div key={i} style={{ height: 40, background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 8, marginBottom: 8, animation: "shimmer 1.5s ease infinite" }} />
+            <div key={i} style={{ height: 40, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, marginBottom: 8, animation: "shimmer 1.5s ease infinite" }} />
           ))}
         </div>
       </div>
@@ -545,21 +547,21 @@ export default function FantasyPanel({ userId, onAskAgent }: FantasyPanelProps) 
   const hasSquad = profile?.team && profile.team.length > 0;
 
   return (
-    <div style={{ padding: "20px 16px", overflowY: "auto", height: "100%", fontFamily: "'DM Mono', monospace" }}>
+    <div style={{ padding: "20px 16px", overflowY: "auto", height: "100%", fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}>
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
 
         <WCCountdown />
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <h2 style={{ color: "#f1f5f9", fontSize: 15, fontWeight: 600, margin: 0, flex: 1 }}>
-            Fantasy Advisor {hasSquad && <span style={{ color: "#64748b", fontWeight: 400 }}>· {profile!.team!.length} players</span>}
+          <h2 style={{ color: "var(--text)", fontSize: 15, fontWeight: 600, margin: 0, flex: 1 }}>
+            Fantasy Advisor {hasSquad && <span style={{ color: "var(--text3)", fontWeight: 400 }}>· {profile!.team!.length} players</span>}
           </h2>
           <button onClick={() => setShowBuilder((v) => !v)} style={{
             padding: "5px 14px", borderRadius: 20,
-            border: `1px solid ${showBuilder ? "#00c896" : "#1e2d50"}`,
-            background: showBuilder ? "#00c89622" : "transparent",
-            color: showBuilder ? "#00c896" : "#94a3b8",
+            border: `1px solid ${showBuilder ? "var(--accent)" : "var(--border)"}`,
+            background: showBuilder ? "var(--accent-dim)" : "transparent",
+            color: showBuilder ? "var(--accent)" : "var(--text2)",
             fontSize: 11, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
           }}>
             {showBuilder ? "✕ Close" : hasSquad ? "✏ Edit Squad" : "⚽ Build Squad"}
@@ -576,33 +578,33 @@ export default function FantasyPanel({ userId, onAskAgent }: FantasyPanelProps) 
         {!showBuilder && (
           hasSquad ? (
             <>
-              <div style={{ color: "#64748b", fontSize: 10, marginBottom: 10, letterSpacing: 1 }}>
+              <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 10, letterSpacing: 1 }}>
                 ⚽ SQUAD · {profile!.team!.length} PLAYERS
               </div>
               <PitchFormation players={profile!.team!} />
             </>
           ) : (
             <div style={{
-              background: "#0d1421", border: "1px dashed #1e2d50", borderRadius: 14,
+              background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 14,
               padding: "32px 20px", textAlign: "center", marginBottom: 18,
             }}>
-              <div style={{ fontSize: 42, marginBottom: 12, filter: "drop-shadow(0 0 12px #00c89633)" }}>🏆</div>
-              <div style={{ color: "#f1f5f9", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>No squad built yet</div>
-              <div style={{ color: "#64748b", fontSize: 11, lineHeight: 1.7, maxWidth: 280, margin: "0 auto 16px" }}>
+              <div style={{ fontSize: 42, marginBottom: 12, filter: "drop-shadow(0 0 12px var(--accent-glow))" }}>🏆</div>
+              <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>No squad built yet</div>
+              <div style={{ color: "var(--text3)", fontSize: 11, lineHeight: 1.7, maxWidth: 280, margin: "0 auto 16px" }}>
                 Pick 11 players from WC 2026 stars within a $100m budget. Captain your best scorer.
               </div>
               <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
                 <button onClick={() => setShowBuilder(true)} style={{
-                  padding: "10px 20px", borderRadius: 20, border: "1px solid #00c896",
-                  background: "#00c89622", color: "#00c896", fontSize: 12,
+                  padding: "10px 20px", borderRadius: 20, border: "1px solid var(--accent)",
+                  background: "var(--accent-dim)", color: "var(--accent)", fontSize: 12,
                   cursor: "pointer", fontFamily: "inherit", fontWeight: 700,
-                  boxShadow: "0 0 16px #00c89633",
+                  boxShadow: "0 0 16px var(--accent-glow)",
                 }}>
                   ⚽ Build my squad →
                 </button>
                 <button onClick={() => onAskAgent?.("Build me an optimal World Cup 2026 fantasy team — best value picks, captain choice, formation and transfer strategy")} style={{
-                  padding: "10px 16px", borderRadius: 20, border: "1px solid #0ea5e944",
-                  background: "#0ea5e911", color: "#0ea5e9", fontSize: 12,
+                  padding: "10px 16px", borderRadius: 20, border: "1px solid var(--blue-dim)",
+                  background: "var(--blue-dim)", color: "var(--blue)", fontSize: 12,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>
                   Ask agent →
@@ -613,8 +615,8 @@ export default function FantasyPanel({ userId, onAskAgent }: FantasyPanelProps) 
         )}
 
         {/* Top value picks */}
-        <div style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
-          <div style={{ color: "#64748b", fontSize: 10, marginBottom: 12, letterSpacing: 1 }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+          <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 12, letterSpacing: 1 }}>
             🔥 TOP VALUE PICKS
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -624,17 +626,17 @@ export default function FantasyPanel({ userId, onAskAgent }: FantasyPanelProps) 
               .map((p) => (
                 <div key={p.name} style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "7px 10px", borderRadius: 8, background: "#0a0f1e",
-                  border: "1px solid #1e2d50",
+                  padding: "7px 10px", borderRadius: 8, background: "var(--bg)",
+                  border: "1px solid var(--border)",
                 }}>
                   <span style={{ fontSize: 14 }}>{p.flag}</span>
                   <div style={{ flex: 1 }}>
-                    <span style={{ color: "#f1f5f9", fontSize: 11, fontWeight: 600 }}>{p.name}</span>
-                    <span style={{ color: "#334155", fontSize: 10, marginLeft: 6 }}>{p.pos}</span>
+                    <span style={{ color: "var(--text)", fontSize: 11, fontWeight: 600 }}>{p.name}</span>
+                    <span style={{ color: "var(--text4)", fontSize: 10, marginLeft: 6 }}>{p.pos}</span>
                   </div>
                   <FormStars form={p.form} />
-                  <span style={{ color: "#00c896", fontSize: 11, fontWeight: 700 }}>${p.price}m</span>
-                  <span style={{ color: "#64748b", fontSize: 9 }}>
+                  <span style={{ color: "var(--accent)", fontSize: 11, fontWeight: 700 }}>${p.price}m</span>
+                  <span style={{ color: "var(--text3)", fontSize: 9 }}>
                     {(p.rating / p.price).toFixed(2)} val
                   </span>
                 </div>
@@ -643,28 +645,28 @@ export default function FantasyPanel({ userId, onAskAgent }: FantasyPanelProps) 
         </div>
 
         {/* Quick-ask grid */}
-        <div style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
-          <div style={{ color: "#64748b", fontSize: 10, marginBottom: 12, letterSpacing: 1 }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+          <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 12, letterSpacing: 1 }}>
             🎯 QUICK ADVICE FROM THE AGENT
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {QUICK_ASKS.map(({ icon, q }) => (
               <button key={q} onClick={() => onAskAgent?.(q)} style={{
-                padding: "9px 12px", borderRadius: 10, border: "1px solid #1e2d50",
-                background: "#0a0f1e", color: "#94a3b8", fontSize: 11,
+                padding: "9px 12px", borderRadius: 10, border: "1px solid var(--border)",
+                background: "var(--bg)", color: "var(--text2)", fontSize: 11,
                 cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                 lineHeight: 1.4, display: "flex", gap: 6, alignItems: "flex-start",
                 transition: "all 0.15s",
               }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "#00c89666";
-                  (e.currentTarget as HTMLElement).style.color = "#e2e8f0";
-                  (e.currentTarget as HTMLElement).style.background = "#0a1a0f";
+                  (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--text)";
+                  (e.currentTarget as HTMLElement).style.background = "var(--accent-dim)";
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "#1e2d50";
-                  (e.currentTarget as HTMLElement).style.color = "#94a3b8";
-                  (e.currentTarget as HTMLElement).style.background = "#0a0f1e";
+                  (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--text2)";
+                  (e.currentTarget as HTMLElement).style.background = "var(--bg)";
                 }}
               >
                 <span style={{ flexShrink: 0 }}>{icon}</span>
@@ -676,18 +678,13 @@ export default function FantasyPanel({ userId, onAskAgent }: FantasyPanelProps) 
 
         <div style={{
           padding: "11px 14px", borderRadius: 10,
-          background: "#0a1a12", border: "1px solid #00c89622",
-          color: "#64748b", fontSize: 11, lineHeight: 1.7,
+          background: "var(--accent-dim)", border: "1px solid var(--accent-border)",
+          color: "var(--text3)", fontSize: 11, lineHeight: 1.7,
         }}>
           💡 Build your squad manually or ask the agent for AI-powered recommendations.
           Your captain earns double points — pick your best forward or midfielder.
         </div>
       </div>
-
-      <style>{`
-        @keyframes shimmer { 0%,100%{opacity:0.4} 50%{opacity:0.8} }
-        @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
-      `}</style>
     </div>
   );
 }
