@@ -60,47 +60,52 @@ export default function Home() {
       display: "flex",
       flexDirection: "column",
       height: "100dvh",
-      background: "#060b14",
-      color: "#e2e8f0",
-      fontFamily: "'DM Mono', monospace",
+      background: "var(--bg, #060b14)",
+      color: "var(--text, #f1f5f9)",
+      fontFamily: "var(--font-sans, 'Inter', sans-serif)",
       position: "relative",
       overflow: "hidden",
     }}>
       {/* Ambient gradient */}
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none", zIndex: 0,
-        background: "radial-gradient(ellipse 80% 50% at 50% -10%, #00c89614 0%, transparent 60%), radial-gradient(ellipse 40% 30% at 80% 80%, #3b82f614 0%, transparent 50%)",
+        background: "radial-gradient(ellipse 90% 55% at 50% -15%, #00c89610 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 85% 85%, #3b82f610 0%, transparent 55%), radial-gradient(ellipse 30% 25% at 15% 70%, #a78bfa08 0%, transparent 50%)",
       }} />
 
       {/* Header */}
       <header style={{
-        padding: "14px 20px",
-        borderBottom: "1px solid #1e2d50",
+        padding: "0 20px",
+        height: 56,
+        borderBottom: "1px solid var(--border, #1a2d4a)",
         display: "flex",
         alignItems: "center",
         gap: 12,
-        background: "#060b14ee",
-        backdropFilter: "blur(12px)",
+        background: "rgba(6,11,20,0.92)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
         position: "relative",
         zIndex: 10,
         flexShrink: 0,
       }}>
+        {/* Logo */}
         <div style={{
-          width: 36, height: 36, borderRadius: 10, fontSize: 18, flexShrink: 0,
-          background: "linear-gradient(135deg, #00c896, #0ea5e9)",
+          width: 34, height: 34, borderRadius: 9, fontSize: 17, flexShrink: 0,
+          background: "linear-gradient(135deg, #00c896 0%, #0ea5e9 100%)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 0 20px #00c89644",
-        }}>
-          ⚽
-        </div>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "#f1f5f9", letterSpacing: "-0.3px" }}>
+          boxShadow: "0 0 0 1px #00c89630, 0 0 16px #00c89630",
+        }}>⚽</div>
+
+        {/* Title */}
+        <div style={{ lineHeight: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text)", letterSpacing: "-0.4px" }}>
             WorldCup Fan Command Center
           </div>
-          <div style={{ fontSize: 10, color: "#00c896", letterSpacing: 1 }}>
-            POWERED BY GEMINI 1.5 PRO · GOOGLE CLOUD AGENT BUILDER
+          <div style={{ fontSize: 9, color: "var(--accent)", letterSpacing: "0.08em", marginTop: 3, fontFamily: "var(--font-mono)", opacity: 0.8 }}>
+            GEMINI 1.5 PRO · GOOGLE CLOUD AGENT BUILDER
           </div>
         </div>
+
+        {/* Right side */}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
           <LocationPicker
             location={location}
@@ -110,16 +115,19 @@ export default function Home() {
             onDetectIP={detectByIP}
           />
           <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "4px 10px", borderRadius: 20,
-            background: "#0a1a12", border: "1px solid #00c89633",
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "5px 11px", borderRadius: 20,
+            background: "var(--accent-dim, #00c89618)",
+            border: "1px solid var(--accent-border, #00c89630)",
           }}>
             <span style={{
-              width: 6, height: 6, borderRadius: "50%", display: "inline-block",
-              background: "#00c896", boxShadow: "0 0 6px #00c896",
-              animation: "pulse 2s ease infinite",
+              width: 6, height: 6, borderRadius: "50%",
+              background: "var(--accent)", boxShadow: "0 0 6px var(--accent)",
+              animation: "pulse 2s ease infinite", flexShrink: 0,
             }} />
-            <span style={{ fontSize: 10, color: "#00c896", letterSpacing: 1 }}>AGENT ONLINE</span>
+            <span style={{ fontSize: 10, color: "var(--accent)", letterSpacing: "0.06em", fontFamily: "var(--font-mono)", fontWeight: 500 }}>
+              ONLINE
+            </span>
           </div>
         </div>
       </header>
@@ -127,77 +135,93 @@ export default function Home() {
       {/* Tab bar */}
       <nav style={{
         display: "flex",
-        borderBottom: "1px solid #1e2d50",
-        background: "#060b14ee",
-        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid var(--border)",
+        background: "rgba(6,11,20,0.88)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
         position: "relative",
         zIndex: 10,
         flexShrink: 0,
+        padding: "6px 12px 0",
+        gap: 2,
       }}>
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{
-              flex: 1, padding: "10px 4px",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-              background: "transparent", border: "none",
-              borderBottom: tab === t.id ? "2px solid #00c896" : "2px solid transparent",
-              color: tab === t.id ? "#00c896" : "#64748b",
-              fontSize: 10, cursor: "pointer", fontFamily: "inherit",
-              transition: "all 0.15s", letterSpacing: 0.3,
-            }}
-          >
-            <span style={{ fontSize: 13 }}>{t.icon}</span>
-            <span className="tab-label">{t.label}</span>
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              style={{
+                flex: 1, padding: "8px 6px 10px",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                background: active ? "var(--accent-dim)" : "transparent",
+                border: "none",
+                borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+                borderRadius: "8px 8px 0 0",
+                color: active ? "var(--accent)" : "var(--text3)",
+                fontSize: 11, fontWeight: active ? 600 : 400,
+                cursor: "pointer", fontFamily: "var(--font-sans)",
+                transition: "all 0.18s ease",
+                letterSpacing: 0.1,
+              }}
+              onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.color = "var(--text2)"; (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)"; } }}
+              onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.color = "var(--text3)"; (e.currentTarget as HTMLElement).style.background = "transparent"; } }}
+            >
+              <span style={{ fontSize: 14 }}>{t.icon}</span>
+              <span className="tab-label">{t.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* Tournament Status Bar — client-only to avoid hydration mismatch */}
       {phaseMounted && !isPost && (
         <div style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "5px 16px",
-          background: isOn ? "#0a1a0f" : "#060b14",
-          borderBottom: `1px solid ${isOn ? "#00c89633" : "#1e2d5088"}`,
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "4px 16px",
+          background: isOn ? "rgba(0,200,150,0.06)" : "var(--bg2, #080e18)",
+          borderBottom: `1px solid ${isOn ? "var(--accent-border)" : "var(--border)"}`,
           flexShrink: 0, overflowX: "auto",
-          scrollbarWidth: "none",
+          scrollbarWidth: "none", fontSize: 10,
+          fontFamily: "var(--font-mono)",
         }}>
           {isOn ? (
             <>
               <span style={{
-                width: 7, height: 7, borderRadius: "50%", background: "#00c896",
-                flexShrink: 0, boxShadow: "0 0 8px #00c896", animation: "pulse 1.5s ease infinite",
+                width: 7, height: 7, borderRadius: "50%", background: "var(--accent)",
+                flexShrink: 0, boxShadow: "0 0 8px var(--accent)", animation: "glow 1.5s ease infinite",
               }} />
-              <span style={{ color: "#00c896", fontSize: 10, fontWeight: 700, letterSpacing: 1, flexShrink: 0 }}>LIVE</span>
+              <span style={{ color: "var(--accent)", fontWeight: 600, letterSpacing: "0.08em", flexShrink: 0 }}>LIVE · FIFA WORLD CUP 2026</span>
             </>
           ) : (
             <>
-              <span style={{ color: "#64748b", fontSize: 10, letterSpacing: 0.5, flexShrink: 0 }}>⚽ KICK-OFF IN</span>
-              {[{ v: days, u: "d" }, { v: hrs, u: "h" }, { v: mins, u: "m" }, { v: secs, u: "s" }].map(({ v, u }) => (
-                <div key={u} style={{ display: "flex", alignItems: "baseline", gap: 2, flexShrink: 0 }}>
-                  <span suppressHydrationWarning style={{
-                    color: "#f1f5f9", fontSize: 13, fontWeight: 800,
-                    minWidth: u === "s" ? 22 : u === "m" ? 22 : u === "h" ? 18 : 28, textAlign: "right",
-                  }}>
-                    {String(v).padStart(2, "0")}
+              <span style={{ color: "var(--text3)", letterSpacing: "0.06em", flexShrink: 0 }}>⚽ KICK-OFF IN</span>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 1, flexShrink: 0 }}>
+                {[{ v: days, u: "d" }, { v: hrs, u: "h" }, { v: mins, u: "m" }, { v: secs, u: "s" }].map(({ v, u }, i) => (
+                  <span key={u} style={{ display: "flex", alignItems: "baseline", gap: 1 }}>
+                    <span suppressHydrationWarning style={{
+                      color: "var(--text)", fontSize: 12, fontWeight: 700,
+                      minWidth: u === "d" ? 24 : 20, textAlign: "right",
+                    }}>
+                      {String(v).padStart(2, "0")}
+                    </span>
+                    <span style={{ color: "var(--text4)", fontSize: 9 }}>{u}</span>
+                    {i < 3 && <span style={{ color: "var(--text4)", fontSize: 10, margin: "0 1px" }}>:</span>}
                   </span>
-                  <span style={{ color: "#334155", fontSize: 9 }}>{u}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </>
           )}
-          <div style={{ width: 1, height: 12, background: "#1e2d50", flexShrink: 0, marginLeft: 4 }} />
-          <span style={{ color: "#334155", fontSize: 9, whiteSpace: "nowrap", flexShrink: 0 }}>
+          <div style={{ width: 1, height: 10, background: "var(--border)", flexShrink: 0, margin: "0 4px" }} />
+          <span style={{ color: "var(--text4)", whiteSpace: "nowrap", flexShrink: 0, letterSpacing: "0.04em" }}>
             🇺🇸 USA · 🇨🇦 Canada · 🇲🇽 Mexico · Jun 11 – Jul 19
           </span>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexShrink: 0 }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 5, flexShrink: 0 }}>
             {["New York", "Mexico City", "LA", "Dallas"].map((city) => (
               <span key={city} style={{
-                fontSize: 9, padding: "1px 7px", borderRadius: 20,
-                background: "#0a0f1e", border: "1px solid #1e2d50", color: "#64748b",
-                whiteSpace: "nowrap",
+                fontSize: 9, padding: "2px 8px", borderRadius: 20,
+                background: "var(--surface)", border: "1px solid var(--border)",
+                color: "var(--text3)", whiteSpace: "nowrap", letterSpacing: "0.04em",
               }}>{city}</span>
             ))}
           </div>
@@ -241,8 +265,7 @@ export default function Home() {
       </main>
 
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        @media (max-width: 480px) { .tab-label { display: none !important; } }
+        @media (max-width: 520px) { .tab-label { display: none !important; } }
       `}</style>
     </div>
   );

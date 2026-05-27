@@ -81,28 +81,28 @@ function StatusTrail({ status }: { status: string }) {
       {labels.map((label, i) => {
         const done = i < stepIdx || (status === "completed" && i === 3);
         const active = i === stepIdx && status !== "cancelled";
-        const c = done || active ? "#00c896" : "#1e2d50";
+        const c = done || active ? "var(--accent)" : "var(--border)";
         return (
           <div key={label} style={{ display: "flex", alignItems: "center", flex: i < labels.length - 1 ? 1 : undefined }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
               <div style={{
                 width: 20, height: 20, borderRadius: "50%", fontSize: 9, fontWeight: 700,
-                background: done ? "#00c896" : active ? "#00c89444" : "#0a0f1e",
+                background: done ? "var(--accent)" : active ? "var(--accent-dim)" : "var(--bg)",
                 border: `2px solid ${c}`,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: done ? "#060b14" : c,
-                boxShadow: active ? "0 0 8px #00c89666" : undefined,
+                color: done ? "var(--bg)" : c,
+                boxShadow: active ? "0 0 8px var(--accent-glow)" : undefined,
               }}>
                 {done ? "✓" : i + 1}
               </div>
-              <span style={{ fontSize: 9, color: active ? "#00c896" : done ? "#64748b" : "#334155", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 9, color: active ? "var(--accent)" : done ? "var(--text3)" : "var(--text4)", whiteSpace: "nowrap" }}>
                 {label}
               </span>
             </div>
             {i < labels.length - 1 && (
               <div style={{
                 flex: 1, height: 2, margin: "0 4px", marginBottom: 14,
-                background: done ? "#00c896" : "#1e2d50", transition: "background 0.3s",
+                background: done ? "var(--accent)" : "var(--border)", transition: "background 0.3s",
               }} />
             )}
           </div>
@@ -122,16 +122,16 @@ function BudgetBar({ breakdown, budget, currency }: {
   return (
     <div style={{ marginTop: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 11 }}>
-        <span style={{ color: "#64748b" }}>Budget used</span>
+        <span style={{ color: "var(--text3)" }}>Budget used</span>
         <span style={{ color: barColor, fontWeight: 700 }}>
           {currency} {total.toLocaleString()}{budget ? ` / ${budget.toLocaleString()} (${pct}%)` : ""}
         </span>
       </div>
       {budget && (
-        <div style={{ height: 6, borderRadius: 4, background: "#0a0f1e", border: "1px solid #1e2d50", overflow: "hidden" }}>
+        <div style={{ height: 6, borderRadius: 4, background: "var(--bg)", border: "1px solid var(--border)", overflow: "hidden" }}>
           <div style={{
             height: "100%", width: `${pct}%`, borderRadius: 4,
-            background: `linear-gradient(90deg, #00c896, ${barColor})`,
+            background: `linear-gradient(90deg, var(--accent), ${barColor})`,
             transition: "width 0.6s ease", boxShadow: `0 0 6px ${barColor}55`,
           }} />
         </div>
@@ -140,12 +140,12 @@ function BudgetBar({ breakdown, budget, currency }: {
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
           {Object.entries(breakdown).map(([cat, amt]) => (
             <div key={cat} style={{
-              background: "#0a0f1e", border: "1px solid #1e2d50",
+              background: "var(--bg)", border: "1px solid var(--border)",
               borderRadius: 8, padding: "5px 10px", fontSize: 10,
             }}>
               {CATEGORY_ICONS[cat] ?? "📌"}{" "}
-              <span style={{ color: "#94a3b8" }}>{cat}</span>{" "}
-              <strong style={{ color: "#e2e8f0" }}>{currency} {Number(amt).toLocaleString()}</strong>
+              <span style={{ color: "var(--text2)" }}>{cat}</span>{" "}
+              <strong style={{ color: "var(--text)" }}>{currency} {Number(amt).toLocaleString()}</strong>
             </div>
           ))}
         </div>
@@ -194,15 +194,15 @@ function AddTripForm({ userId, onClose, onSaved, onAskAgent }: {
   };
 
   const inputStyle: React.CSSProperties = {
-    width: "100%", background: "#0a0f1e", border: "1px solid #1e2d50",
-    borderRadius: 8, padding: "8px 10px", color: "#e2e8f0", fontSize: 12,
+    width: "100%", background: "var(--bg)", border: "1px solid var(--border)",
+    borderRadius: 8, padding: "8px 10px", color: "var(--text)", fontSize: 12,
     fontFamily: "inherit", outline: "none", boxSizing: "border-box",
   };
 
   if (saved) {
     return (
       <div style={{
-        background: "#0a1a12", border: "1px solid #00c89633", borderRadius: 14,
+        background: "var(--accent-dim)", border: "1px solid var(--accent-border)", borderRadius: 14,
         padding: "28px 18px", marginBottom: 20, textAlign: "center",
         animation: "slideDown 0.2s ease",
       }}>
@@ -217,7 +217,7 @@ function AddTripForm({ userId, onClose, onSaved, onAskAgent }: {
 
   return (
     <div style={{
-      background: "#0d1a12", border: "1px solid #00c89633", borderRadius: 14,
+      background: "var(--surface)", border: "1px solid var(--accent-border)", borderRadius: 14,
       padding: "18px", marginBottom: 20, animation: "slideDown 0.2s ease",
     }}>
       <div style={{ color: "#00c896", fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
@@ -244,19 +244,19 @@ function AddTripForm({ userId, onClose, onSaved, onAskAgent }: {
             const selected = destCity?.city === c.city;
             return (
               <button key={c.city} onClick={() => setDestCity(c)} style={{
-                padding: "8px 10px", borderRadius: 10, border: `1px solid ${selected ? "#00c896" : "#1e2d50"}`,
-                background: selected ? "#00c89618" : "#0a0f1e",
-                color: selected ? "#00c896" : "#94a3b8",
+                padding: "8px 10px", borderRadius: 10, border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
+                background: selected ? "var(--accent-dim)" : "var(--bg)",
+                color: selected ? "var(--accent)" : "var(--text2)",
                 fontSize: 11, cursor: "pointer", fontFamily: "inherit",
                 textAlign: "left", transition: "all 0.15s",
-                boxShadow: selected ? "0 0 8px #00c89622" : undefined,
+                boxShadow: selected ? "0 0 8px var(--accent-glow)" : undefined,
               }}>
                 <div style={{ fontSize: 16, marginBottom: 2 }}>{c.flag}</div>
                 <div style={{ fontWeight: selected ? 700 : 500 }}>{c.city}</div>
-                <div style={{ fontSize: 9, color: selected ? "#00c89699" : "#334155", marginTop: 1 }}>
+                <div style={{ fontSize: 9, color: selected ? "var(--accent)" : "var(--text4)", marginTop: 1 }}>
                   {c.country}
                 </div>
-                <div style={{ fontSize: 8, color: selected ? "#00c89688" : "#1e2d50", marginTop: 3, letterSpacing: 0.3 }}>
+                <div style={{ fontSize: 8, color: selected ? "var(--accent)" : "var(--text4)", marginTop: 3, letterSpacing: 0.3, opacity: selected ? 0.7 : 1 }}>
                   {c.estCost}
                 </div>
               </button>
@@ -266,8 +266,8 @@ function AddTripForm({ userId, onClose, onSaved, onAskAgent }: {
         {destCity && (
           <div style={{
             marginTop: 8, padding: "6px 10px", borderRadius: 8,
-            background: "#0a1a12", border: "1px solid #00c89622",
-            fontSize: 10, color: "#64748b",
+            background: "var(--accent-dim)", border: "1px solid var(--accent-border)",
+            fontSize: 10, color: "var(--text3)",
           }}>
             🏟 {destCity.stadium} · Cap. {destCity.cap}
           </div>
@@ -313,15 +313,15 @@ function AddTripForm({ userId, onClose, onSaved, onAskAgent }: {
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={submit} disabled={!canSubmit} style={{
           flex: 1, padding: "9px", borderRadius: 8, border: "none",
-          background: canSubmit ? "linear-gradient(135deg, #00c896, #0ea5e9)" : "#1e2d50",
+          background: canSubmit ? "linear-gradient(135deg, var(--accent), var(--blue))" : "var(--border)",
           color: "#fff", fontSize: 12, fontWeight: 700,
           cursor: canSubmit ? "pointer" : "not-allowed", fontFamily: "inherit",
         }}>
           {saving ? "Saving…" : "Save Trip →"}
         </button>
         <button onClick={onClose} disabled={saving} style={{
-          padding: "9px 14px", borderRadius: 8, border: "1px solid #1e2d50",
-          background: "transparent", color: "#64748b", fontSize: 12,
+          padding: "9px 14px", borderRadius: 8, border: "1px solid var(--border)",
+          background: "transparent", color: "var(--text3)", fontSize: 12,
           cursor: "pointer", fontFamily: "inherit",
         }}>
           Cancel
@@ -334,8 +334,8 @@ function AddTripForm({ userId, onClose, onSaved, onAskAgent }: {
           `flights, hotel near ${destCity.stadium}, visa requirements and full budget breakdown in ${currency}.`
         )} style={{
           width: "100%", padding: "6px", borderRadius: 8, marginTop: 6,
-          border: "1px solid #0ea5e944", background: "transparent",
-          color: "#0ea5e9", fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+          border: "1px solid var(--blue-dim)", background: "transparent",
+          color: "var(--blue)", fontSize: 11, cursor: "pointer", fontFamily: "inherit",
         }}>
           Ask agent for detailed itinerary →
         </button>
@@ -346,11 +346,11 @@ function AddTripForm({ userId, onClose, onSaved, onAskAgent }: {
 
 function SkeletonCard() {
   return (
-    <div style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 14, padding: "16px 20px" }}>
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "16px 20px" }}>
       {[80, 50, 65].map((w, i) => (
         <div key={i} style={{
           height: i === 0 ? 14 : 10, width: `${w}%`, borderRadius: 4,
-          background: "#1e2d50", marginBottom: 10, animation: "shimmer 1.5s ease infinite",
+          background: "var(--border)", marginBottom: 10, animation: "shimmer 1.5s ease infinite",
         }} />
       ))}
     </div>
@@ -380,7 +380,7 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
 
   if (loading) {
     return (
-      <div style={{ padding: "20px 16px", fontFamily: "'DM Mono', monospace" }}>
+      <div style={{ padding: "20px 16px", fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}>
         <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
           {[1, 2].map((i) => <SkeletonCard key={i} />)}
         </div>
@@ -391,30 +391,31 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
   const wcDays = daysUntil("2026-06-11") ?? 0;
 
   return (
-    <div style={{ padding: "20px 16px", overflowY: "auto", height: "100%", fontFamily: "'DM Mono', monospace" }}>
+    <div style={{ padding: "20px 16px", overflowY: "auto", height: "100%", fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}>
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
 
         {/* WC countdown banner */}
         <div style={{
-          background: "linear-gradient(135deg, #00c89614, #0ea5e908)",
-          border: "1px solid #00c89633", borderRadius: 14,
-          padding: "14px 18px", marginBottom: 18,
+          background: "linear-gradient(135deg, var(--accent-dim), var(--blue-dim, rgba(56,189,248,0.06)))",
+          border: "1px solid var(--accent-border)", borderRadius: 16,
+          padding: "16px 20px", marginBottom: 20,
           display: "flex", alignItems: "center", gap: 14,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)",
         }}>
-          <div style={{ fontSize: 28, filter: "drop-shadow(0 0 10px #00c896)" }}>✈️</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ color: "#00c896", fontSize: 20, fontWeight: 800, lineHeight: 1 }}>
+          <div style={{ fontSize: 30, filter: "drop-shadow(0 0 12px var(--accent))", flexShrink: 0 }}>✈️</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "var(--accent)", fontSize: 22, fontWeight: 800, lineHeight: 1, letterSpacing: "-0.5px", fontFamily: "var(--font-mono)" }}>
               {wcDays} days
             </div>
-            <div style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>
+            <div style={{ color: "var(--text3)", fontSize: 12, marginTop: 4, fontWeight: 400 }}>
               until World Cup 2026 · June 11 · USA / Canada / Mexico
             </div>
           </div>
           <div style={{
-            fontSize: 10, padding: "3px 10px", borderRadius: 20, fontWeight: 700,
-            background: wcDays <= 30 ? "#f59e0b22" : "#00c89622",
-            color: wcDays <= 30 ? "#f59e0b" : "#00c896",
-            border: `1px solid ${wcDays <= 30 ? "#f59e0b44" : "#00c89644"}`,
+            fontSize: 11, padding: "4px 12px", borderRadius: 20, fontWeight: 600, flexShrink: 0,
+            background: wcDays <= 30 ? "rgba(251,191,36,0.12)" : "var(--accent-dim)",
+            color: wcDays <= 30 ? "var(--yellow, #fbbf24)" : "var(--accent)",
+            border: `1px solid ${wcDays <= 30 ? "rgba(251,191,36,0.3)" : "var(--accent-border)"}`,
           }}>
             {trips.length} trip{trips.length !== 1 ? "s" : ""} planned
           </div>
@@ -422,17 +423,17 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <h2 style={{ color: "#f1f5f9", fontSize: 15, fontWeight: 600, margin: 0, flex: 1 }}>
+          <h2 style={{ color: "var(--text)", fontSize: 15, fontWeight: 600, margin: 0, flex: 1, letterSpacing: "-0.2px" }}>
             My Trips
           </h2>
           <button
             onClick={() => setShowForm((v) => !v)}
             style={{
-              padding: "5px 14px", borderRadius: 20,
-              border: `1px solid ${showForm ? "#00c896" : "#1e2d50"}`,
-              background: showForm ? "#00c89622" : "transparent",
-              color: showForm ? "#00c896" : "#94a3b8",
-              fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+              padding: "6px 16px", borderRadius: 20,
+              border: `1px solid ${showForm ? "var(--accent)" : "var(--border2)"}`,
+              background: showForm ? "var(--accent-dim)" : "var(--surface)",
+              color: showForm ? "var(--accent)" : "var(--text2)",
+              fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit",
               transition: "all 0.15s",
             }}
           >
@@ -454,23 +455,24 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
         {trips.length === 0 && !showForm && (
           <div style={{
             padding: "40px 20px", textAlign: "center",
-            border: "1px dashed #1e2d50", borderRadius: 14, background: "#0d1421",
+            border: "1px dashed var(--border2)", borderRadius: 16,
+            background: "var(--surface)",
           }}>
-            <div style={{ fontSize: 48, marginBottom: 14, filter: "drop-shadow(0 0 20px #00c89644)" }}>🗺️</div>
-            <div style={{ color: "#f1f5f9", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+            <div style={{ fontSize: 48, marginBottom: 14, filter: "drop-shadow(0 0 20px var(--accent-glow))" }}>🗺️</div>
+            <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
               No trips planned yet
             </div>
-            <div style={{ color: "#64748b", fontSize: 12, maxWidth: 280, margin: "0 auto 20px", lineHeight: 1.7 }}>
+            <div style={{ color: "var(--text3)", fontSize: 12, maxWidth: 280, margin: "0 auto 20px", lineHeight: 1.7 }}>
               16 stadiums across 3 countries. Pick your match city, set your travel dates, and we&apos;ll build the perfect trip.
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
               <button
                 onClick={() => setShowForm(true)}
                 style={{
-                  padding: "10px 20px", borderRadius: 20, border: "1px solid #00c896",
-                  background: "#00c89622", color: "#00c896", fontSize: 12,
+                  padding: "10px 20px", borderRadius: 20, border: "1px solid var(--accent)",
+                  background: "var(--accent-dim)", color: "var(--accent)", fontSize: 12,
                   cursor: "pointer", fontFamily: "inherit", fontWeight: 700,
-                  boxShadow: "0 0 16px #00c89633",
+                  boxShadow: "0 0 16px var(--accent-glow)",
                 }}
               >
                 ✈ Plan my World Cup trip →
@@ -480,7 +482,7 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
               {["New York 🇺🇸", "Mexico City 🇲🇽", "Vancouver 🇨🇦", "Dallas 🇺🇸", "Miami 🇺🇸"].map((city) => (
                 <span key={city} style={{
                   fontSize: 10, padding: "3px 10px", borderRadius: 20,
-                  background: "#0a0f1e", border: "1px solid #1e2d50", color: "#64748b",
+                  background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text3)",
                 }}>
                   {city}
                 </span>
@@ -498,10 +500,10 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
 
             return (
               <div key={trip.id} style={{
-                background: "#0d1421",
-                border: `1px solid ${isOpen ? "#00c89644" : "#1e2d50"}`,
+                background: "var(--surface)",
+                border: `1px solid ${isOpen ? "var(--accent-border)" : "var(--border)"}`,
                 borderRadius: 14, overflow: "hidden",
-                boxShadow: isOpen ? "0 0 20px #00c89611" : "none",
+                boxShadow: isOpen ? "0 0 20px var(--accent-glow)" : "none",
                 transition: "all 0.2s",
               }}>
                 {/* Card header — click to expand */}
@@ -523,16 +525,16 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: "#f1f5f9", fontSize: 14, fontWeight: 700, marginBottom: 3 }}>
+                    <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 700, marginBottom: 3 }}>
                       {trip.origin_city} → {trip.destination_city}
                     </div>
                     {trip.travel_dates?.depart ? (
-                      <div style={{ color: "#64748b", fontSize: 11 }}>
+                      <div style={{ color: "var(--text3)", fontSize: 11 }}>
                         {new Date(trip.travel_dates.depart).toLocaleDateString("en", { day: "numeric", month: "short", year: "numeric" })}
                         {trip.travel_dates.return && ` – ${new Date(trip.travel_dates.return).toLocaleDateString("en", { day: "numeric", month: "short" })}`}
                       </div>
                     ) : (
-                      <div style={{ color: "#334155", fontSize: 11 }}>Dates TBD · World Cup Jun–Jul 2026</div>
+                      <div style={{ color: "var(--text4)", fontSize: 11 }}>Dates TBD · World Cup Jun–Jul 2026</div>
                     )}
                   </div>
 
@@ -546,44 +548,44 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
                     <CountdownBadge days={days} />
                   </div>
 
-                  <span style={{ color: "#334155", fontSize: 12 }}>{isOpen ? "▲" : "▼"}</span>
+                  <span style={{ color: "var(--text4)", fontSize: 12 }}>{isOpen ? "▲" : "▼"}</span>
                 </button>
 
                 {/* Expanded details */}
                 {isOpen && (
-                  <div style={{ padding: "4px 20px 20px", borderTop: "1px solid #1e2d5044" }}>
+                  <div style={{ padding: "4px 20px 20px", borderTop: "1px solid var(--border)" }}>
                     <StatusTrail status={trip.status} />
                     <BudgetBar breakdown={trip.cost_breakdown} budget={trip.budget} currency={trip.currency} />
 
                     {/* Itinerary */}
                     {trip.itinerary && trip.itinerary.length > 0 && (
                       <div style={{ marginTop: 16 }}>
-                        <div style={{ color: "#64748b", fontSize: 10, marginBottom: 8, letterSpacing: 1 }}>ITINERARY</div>
+                        <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 8, letterSpacing: 1 }}>ITINERARY</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {trip.itinerary.slice(0, 4).map((day) => (
                             <div key={day.day} style={{
-                              background: "#0a0f1e", border: "1px solid #1e2d50",
+                              background: "var(--bg)", border: "1px solid var(--border)",
                               borderRadius: 8, padding: "8px 12px", display: "flex", gap: 12,
                             }}>
                               <div style={{
-                                background: "#00c89622", color: "#00c896",
+                                background: "var(--accent-dim)", color: "var(--accent)",
                                 fontSize: 10, padding: "2px 8px", borderRadius: 6, flexShrink: 0, fontWeight: 700,
                               }}>
                                 Day {day.day}
                               </div>
                               <div>
-                                <div style={{ color: "#64748b", fontSize: 10, marginBottom: 2 }}>{day.date}</div>
-                                <div style={{ color: "#e2e8f0", fontSize: 12, lineHeight: 1.5 }}>
+                                <div style={{ color: "var(--text3)", fontSize: 10, marginBottom: 2 }}>{day.date}</div>
+                                <div style={{ color: "var(--text)", fontSize: 12, lineHeight: 1.5 }}>
                                   {day.activities.slice(0, 2).join(" · ")}
                                   {day.activities.length > 2 && (
-                                    <span style={{ color: "#64748b" }}> +{day.activities.length - 2} more</span>
+                                    <span style={{ color: "var(--text3)" }}> +{day.activities.length - 2} more</span>
                                   )}
                                 </div>
                               </div>
                             </div>
                           ))}
                           {trip.itinerary.length > 4 && (
-                            <div style={{ color: "#334155", fontSize: 10, paddingLeft: 8 }}>
+                            <div style={{ color: "var(--text4)", fontSize: 10, paddingLeft: 8 }}>
                               +{trip.itinerary.length - 4} more days…
                             </div>
                           )}
@@ -600,19 +602,19 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
                         { label: "💰 Budget plan", prompt: `Create a detailed budget breakdown for a World Cup 2026 trip to ${trip.destination_city} from ${trip.origin_city}` },
                       ].map(({ label, prompt }) => (
                         <button key={label} onClick={() => onAskAgent?.(prompt)} style={{
-                          padding: "5px 12px", borderRadius: 8, border: "1px solid #1e2d50",
-                          background: "#0a0f1e", color: "#94a3b8", fontSize: 11,
+                          padding: "5px 12px", borderRadius: 8, border: "1px solid var(--border)",
+                          background: "var(--bg)", color: "var(--text2)", fontSize: 11,
                           cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
                         }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#00c89666"; (e.currentTarget as HTMLElement).style.color = "#00c896"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d50"; (e.currentTarget as HTMLElement).style.color = "#94a3b8"; }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; (e.currentTarget as HTMLElement).style.color = "var(--accent)"; (e.currentTarget as HTMLElement).style.background = "var(--accent-dim)"; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.color = "var(--text2)"; (e.currentTarget as HTMLElement).style.background = "var(--bg)"; }}
                         >
                           {label}
                         </button>
                       ))}
                     </div>
 
-                    <div style={{ marginTop: 10, color: "#1e2d50", fontSize: 10 }}>
+                    <div style={{ marginTop: 10, color: "var(--text4)", fontSize: 10 }}>
                       Saved {new Date(trip.created_at).toLocaleDateString()}
                     </div>
                   </div>
@@ -623,11 +625,6 @@ export default function TripCard({ userId, onAskAgent }: TripCardProps) {
         </div>
       </div>
 
-      <style>{`
-        @keyframes shimmer { 0%,100%{opacity:0.4} 50%{opacity:0.8} }
-        @keyframes countPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-        @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
-      `}</style>
     </div>
   );
 }

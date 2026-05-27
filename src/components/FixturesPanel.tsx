@@ -43,25 +43,25 @@ function daysUntil(iso: string) {
 
 function PredictionBar({ pred, compact = false }: { pred: MatchPrediction; compact?: boolean }) {
   const { team1Win, draw, team2Win } = pred;
-  const barH = compact ? 5 : 8;
+  const barH = compact ? 4 : 7;
 
   return (
     <div>
       {!compact && (
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#64748b", marginBottom: 4 }}>
-          <span style={{ color: team1Win > team2Win ? "#00c896" : "#94a3b8", fontWeight: team1Win > team2Win ? 700 : 400 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5, fontFamily: "var(--font-mono)" }}>
+          <span style={{ color: team1Win > team2Win ? "var(--accent)" : "var(--text2)", fontWeight: team1Win > team2Win ? 700 : 400 }}>
             {team1Win}%
           </span>
-          {draw > 0 && <span style={{ color: "#64748b" }}>{draw}% draw</span>}
-          <span style={{ color: team2Win > team1Win ? "#00c896" : "#94a3b8", fontWeight: team2Win > team1Win ? 700 : 400 }}>
+          {draw > 0 && <span style={{ color: "var(--text3)" }}>{draw}% draw</span>}
+          <span style={{ color: team2Win > team1Win ? "var(--blue, #38bdf8)" : "var(--text2)", fontWeight: team2Win > team1Win ? 700 : 400 }}>
             {team2Win}%
           </span>
         </div>
       )}
-      <div style={{ display: "flex", height: barH, borderRadius: 4, overflow: "hidden", gap: 1 }}>
-        <div style={{ width: `${team1Win}%`, background: team1Win > team2Win ? "#00c896" : "#1e3a2e", transition: "width 0.8s ease" }} />
-        {draw > 0 && <div style={{ width: `${draw}%`, background: "#1e2d50" }} />}
-        <div style={{ width: `${team2Win}%`, background: team2Win > team1Win ? "#0ea5e9" : "#0a1a2e", transition: "width 0.8s ease" }} />
+      <div style={{ display: "flex", height: barH, borderRadius: 4, overflow: "hidden", gap: 1, background: "var(--bg, #060b14)" }}>
+        <div style={{ width: `${team1Win}%`, background: team1Win > team2Win ? "var(--accent)" : "var(--surface3, #152438)", transition: "width 0.8s ease", borderRadius: "4px 0 0 4px" }} />
+        {draw > 0 && <div style={{ width: `${draw}%`, background: "var(--border2, #243a55)" }} />}
+        <div style={{ width: `${team2Win}%`, background: team2Win > team1Win ? "var(--blue, #38bdf8)" : "var(--surface2, #101f30)", transition: "width 0.8s ease", borderRadius: "0 4px 4px 0" }} />
       </div>
     </div>
   );
@@ -75,80 +75,101 @@ function MatchCard({ match, onAskAgent }: { match: FixtureMatch; onAskAgent?: (p
   const pred = predictMatch(team1, team2);
   const timeLabel = daysUntil(match.date);
   const isLive = match.status === "live";
-  const confColor = pred.confidence === "high" ? "#00c896" : pred.confidence === "medium" ? "#f59e0b" : "#94a3b8";
+  const confColor = pred.confidence === "high" ? "var(--accent)" : pred.confidence === "medium" ? "var(--yellow, #fbbf24)" : "var(--text2)";
 
   return (
     <div style={{
-      background: isLive ? "#0a1a0f" : "#0d1421",
-      border: `1px solid ${isLive ? "#00c89666" : "#1e2d50"}`,
+      background: isLive ? "rgba(0,200,150,0.07)" : "var(--surface, #0d1825)",
+      border: `1px solid ${isLive ? "var(--accent-border)" : "var(--border, #1a2d4a)"}`,
       borderRadius: 12, padding: "14px 16px",
-      transition: "border-color 0.2s",
+      transition: "border-color 0.2s, background 0.2s",
       animation: "fadeUp 0.25s ease",
-    }}>
+      cursor: "default",
+    }}
+    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border2, #243a55)"; }}
+    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = isLive ? "var(--accent-border)" : "var(--border, #1a2d4a)"; }}
+    >
       {/* Match meta */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, fontSize: 10, color: "#64748b" }}>
-        <span>{match.group ?? match.round} · {match.city}</span>
-        <span style={{ color: isLive ? "#00c896" : timeLabel === "Today!" ? "#f59e0b" : "#64748b", fontWeight: isLive || timeLabel === "Today!" ? 700 : 400 }}>
-          {isLive ? "🔴 LIVE" : timeLabel}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, fontSize: 11 }}>
+        <span style={{ color: "var(--text3)", fontFamily: "var(--font-mono)" }}>{match.group ?? match.round} · {match.city}</span>
+        <span style={{
+          color: isLive ? "var(--accent)" : timeLabel === "Today!" ? "var(--yellow, #fbbf24)" : "var(--text3)",
+          fontWeight: isLive || timeLabel === "Today!" ? 600 : 400,
+          fontFamily: "var(--font-mono)", fontSize: 10,
+        }}>
+          {isLive ? "● LIVE" : timeLabel}
         </span>
       </div>
 
-      {/* Teams */}
-      <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 10 }}>
+      {/* Teams row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 8, marginBottom: 12 }}>
         {/* Team 1 */}
-        <div style={{ flex: 1, textAlign: "left" }}>
-          <div style={{ fontSize: 22, marginBottom: 3 }}>{team1.flag}</div>
-          <div style={{ color: pred.team1Win > pred.team2Win ? "#f1f5f9" : "#94a3b8", fontSize: 13, fontWeight: 700 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <span style={{ fontSize: 24 }}>{team1.flag}</span>
+          <span style={{ color: pred.team1Win > pred.team2Win ? "var(--text)" : "var(--text2)", fontSize: 13, fontWeight: 600, lineHeight: 1.2 }}>
             {team1.name}
-          </div>
-          <div style={{ color: "#334155", fontSize: 10 }}>#{team1.fifaRank}</div>
+          </span>
+          <span style={{ color: "var(--text4)", fontSize: 10, fontFamily: "var(--font-mono)" }}>FIFA #{team1.fifaRank}</span>
         </div>
 
-        {/* Score or VS */}
-        <div style={{ padding: "0 12px", textAlign: "center" }}>
+        {/* VS / Score */}
+        <div style={{ textAlign: "center", padding: "0 8px" }}>
           {match.score ? (
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#f1f5f9" }}>
-              {match.score.team1} – {match.score.team2}
+            <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", letterSpacing: "-1px", fontFamily: "var(--font-mono)" }}>
+              {match.score.team1}–{match.score.team2}
             </div>
           ) : (
-            <div style={{ fontSize: 12, color: "#334155", fontWeight: 600 }}>VS</div>
+            <div style={{
+              fontSize: 10, fontWeight: 700, color: "var(--text3)",
+              background: "var(--surface2)", border: "1px solid var(--border)",
+              borderRadius: 6, padding: "3px 8px", fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
+            }}>VS</div>
           )}
-          <div style={{ fontSize: 9, color: "#334155", marginTop: 2 }}>
+          <div style={{ fontSize: 9, color: "var(--text4)", marginTop: 3, fontFamily: "var(--font-mono)" }}>
             {new Date(match.date).toLocaleDateString("en", { month: "short", day: "numeric" })}
           </div>
         </div>
 
         {/* Team 2 */}
-        <div style={{ flex: 1, textAlign: "right" }}>
-          <div style={{ fontSize: 22, marginBottom: 3 }}>{team2.flag}</div>
-          <div style={{ color: pred.team2Win > pred.team1Win ? "#f1f5f9" : "#94a3b8", fontSize: 13, fontWeight: 700 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-end" }}>
+          <span style={{ fontSize: 24 }}>{team2.flag}</span>
+          <span style={{ color: pred.team2Win > pred.team1Win ? "var(--text)" : "var(--text2)", fontSize: 13, fontWeight: 600, lineHeight: 1.2, textAlign: "right" }}>
             {team2.name}
-          </div>
-          <div style={{ color: "#334155", fontSize: 10 }}>#{team2.fifaRank}</div>
+          </span>
+          <span style={{ color: "var(--text4)", fontSize: 10, fontFamily: "var(--font-mono)" }}>FIFA #{team2.fifaRank}</span>
         </div>
       </div>
 
       {/* Prediction bar */}
       <PredictionBar pred={pred} />
 
-      {/* AI label */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
-        <span style={{ fontSize: 10, color: confColor }}>
-          {pred.confidence === "high" ? "●" : pred.confidence === "medium" ? "◑" : "○"} {pred.label}
+      {/* AI verdict */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 9 }}>
+        <span style={{ fontSize: 10, color: confColor, display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-mono)" }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: confColor, display: "inline-block", flexShrink: 0 }} />
+          {pred.label}
         </span>
         {onAskAgent && (
           <button
             onClick={() => onAskAgent(`Analyse the ${team1.name} vs ${team2.name} World Cup 2026 match — predicted lineup, key players, tactical breakdown and your prediction`)}
             style={{
-              fontSize: 10, padding: "2px 8px", borderRadius: 6,
-              border: "1px solid #1e2d50", background: "transparent",
-              color: "#64748b", cursor: "pointer", fontFamily: "inherit",
-              transition: "all 0.15s",
+              fontSize: 10, padding: "3px 9px", borderRadius: 6,
+              border: "1px solid var(--border)", background: "transparent",
+              color: "var(--text3)", cursor: "pointer",
+              fontFamily: "var(--font-mono)", transition: "all 0.15s",
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#00c896"; (e.currentTarget as HTMLElement).style.color = "#00c896"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "#1e2d50"; (e.currentTarget as HTMLElement).style.color = "#64748b"; }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor = "var(--accent-border)";
+              (e.currentTarget as HTMLElement).style.color = "var(--accent)";
+              (e.currentTarget as HTMLElement).style.background = "var(--accent-dim)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+              (e.currentTarget as HTMLElement).style.color = "var(--text3)";
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+            }}
           >
-            ⚽ Deep analysis →
+            Deep analysis →
           </button>
         )}
       </div>
@@ -172,7 +193,7 @@ function ScheduleTab({ data, onAskAgent }: { data: FixtureData; onAskAgent?: (p:
   return (
     <div>
       {/* Group selector */}
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
         {groups.map((g) => {
           const letter = g.replace("Group ", "");
           const active = g === activeGroup;
@@ -181,10 +202,12 @@ function ScheduleTab({ data, onAskAgent }: { data: FixtureData; onAskAgent?: (p:
               key={g}
               onClick={() => setActiveGroup(g)}
               style={{
-                width: 32, height: 32, borderRadius: 8, border: `1px solid ${active ? "#00c896" : "#1e2d50"}`,
-                background: active ? "#00c89622" : "transparent",
-                color: active ? "#00c896" : "#64748b", fontSize: 12, fontWeight: active ? 700 : 400,
-                cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+                width: 34, height: 34, borderRadius: 9,
+                border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                background: active ? "var(--accent-dim)" : "var(--surface)",
+                color: active ? "var(--accent)" : "var(--text2)",
+                fontSize: 12, fontWeight: active ? 700 : 500,
+                cursor: "pointer", fontFamily: "var(--font-mono)", transition: "all 0.15s",
               }}
             >
               {letter}
@@ -196,13 +219,14 @@ function ScheduleTab({ data, onAskAgent }: { data: FixtureData; onAskAgent?: (p:
       {/* Group teams mini row */}
       {groupTeams.length > 0 && (
         <div style={{
-          display: "flex", gap: 8, padding: "10px 14px", borderRadius: 10,
-          background: "#0a0f1e", border: "1px solid #1e2d50", marginBottom: 14,
+          display: "flex", gap: 10, padding: "10px 16px", borderRadius: 10,
+          background: "var(--bg)", border: "1px solid var(--border)", marginBottom: 16,
+          flexWrap: "wrap",
         }}>
           {groupTeams.map((t) => (
-            <div key={t.code} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ fontSize: 16 }}>{t.flag}</span>
-              <span style={{ fontSize: 11, color: "#94a3b8" }}>{t.name}</span>
+            <div key={t.code} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 17 }}>{t.flag}</span>
+              <span style={{ fontSize: 12, color: "var(--text2)", fontWeight: 500 }}>{t.name}</span>
               <span style={{ fontSize: 9, color: "#334155" }}>#{t.fifaRank}</span>
             </div>
           ))}
@@ -521,19 +545,22 @@ function StandingsTab({ data, onAskAgent }: { data: FixtureData; onAskAgent?: (p
   return (
     <div>
       {/* Group selector */}
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 18 }}>
         {groups.map((g) => {
           const letter = g.replace("Group ", "");
           const active = g === activeGroup;
           return (
             <button key={g} onClick={() => setActiveGroup(g)} style={{
-              width: 32, height: 32, borderRadius: 8,
-              border: `1px solid ${active ? "#00c896" : "#1e2d50"}`,
-              background: active ? "#00c89622" : "transparent",
-              color: active ? "#00c896" : "#64748b",
-              fontSize: 12, fontWeight: active ? 700 : 400,
-              cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
-            }}>
+              width: 34, height: 34, borderRadius: 9,
+              border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+              background: active ? "var(--accent-dim)" : "var(--surface)",
+              color: active ? "var(--accent)" : "var(--text2)",
+              fontSize: 12, fontWeight: active ? 700 : 500,
+              cursor: "pointer", fontFamily: "var(--font-mono)", transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = "var(--border2)"; (e.currentTarget as HTMLElement).style.color = "var(--text)"; } }}
+            onMouseLeave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.color = "var(--text2)"; } }}
+            >
               {letter}
             </button>
           );
@@ -541,16 +568,16 @@ function StandingsTab({ data, onAskAgent }: { data: FixtureData; onAskAgent?: (p
       </div>
 
       {/* Table */}
-      <div style={{ background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 14, overflow: "hidden", marginBottom: 14 }}>
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", marginBottom: 16 }}>
         {/* Header */}
         <div style={{
-          display: "grid", gridTemplateColumns: "20px 1fr 28px 28px 28px 28px 36px 40px",
-          padding: "8px 14px", background: "#0a0f1e", borderBottom: "1px solid #1e2d50",
+          display: "grid", gridTemplateColumns: "22px 1fr 30px 30px 30px 30px 38px 44px",
+          padding: "9px 16px", background: "var(--bg)", borderBottom: "1px solid var(--border)",
         }}>
           {["", "Team", "P", "W", "D", "L", "GD", "Pts"].map((h, i) => (
             <span key={i} style={{
-              color: "#334155", fontSize: 9, textAlign: i >= 2 ? "center" : "left",
-              letterSpacing: 0.8, fontWeight: 600,
+              color: "var(--text4)", fontSize: 10, textAlign: i >= 2 ? "center" : "left",
+              letterSpacing: "0.08em", fontWeight: 600, fontFamily: "var(--font-mono)",
             }}>{h}</span>
           ))}
         </div>
@@ -560,33 +587,37 @@ function StandingsTab({ data, onAskAgent }: { data: FixtureData; onAskAgent?: (p
           const third = i === 2;
           return (
             <div key={s.team.code} style={{
-              display: "grid", gridTemplateColumns: "20px 1fr 28px 28px 28px 28px 36px 40px",
-              padding: "10px 14px", borderBottom: "1px solid #1e2d5022",
-              background: qualified ? "#0a1a0f" : "transparent",
-              borderLeft: `3px solid ${qualified ? "#00c896" : third ? "#f59e0b44" : "transparent"}`,
+              display: "grid", gridTemplateColumns: "22px 1fr 30px 30px 30px 30px 38px 44px",
+              padding: "11px 16px", borderBottom: "1px solid var(--border)",
+              background: qualified ? "rgba(0,200,150,0.04)" : "transparent",
+              borderLeft: `3px solid ${qualified ? "var(--accent)" : third ? "rgba(251,191,36,0.4)" : "transparent"}`,
               transition: "background 0.2s", animation: "fadeUp 0.25s ease",
             }}>
               <span style={{
-                color: qualified ? "#00c896" : third ? "#f59e0b" : "#334155",
+                color: qualified ? "var(--accent)" : third ? "var(--yellow, #fbbf24)" : "var(--text4)",
                 fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center",
+                fontFamily: "var(--font-mono)",
               }}>
                 {qualified ? "✓" : i + 1}
               </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 16 }}>{s.team.flag}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                <span style={{ fontSize: 17 }}>{s.team.flag}</span>
                 <div>
-                  <div style={{ color: qualified ? "#f1f5f9" : "#94a3b8", fontSize: 12, fontWeight: qualified ? 700 : 400 }}>
+                  <div style={{ color: qualified ? "var(--text)" : "var(--text2)", fontSize: 13, fontWeight: qualified ? 600 : 400, lineHeight: 1.2 }}>
                     {s.team.name}
                   </div>
-                  <div style={{ color: "#334155", fontSize: 9 }}>FIFA #{s.team.fifaRank}</div>
+                  <div style={{ color: "var(--text4)", fontSize: 9.5, fontFamily: "var(--font-mono)" }}>FIFA #{s.team.fifaRank}</div>
                 </div>
               </div>
               {[s.played, s.won, s.drawn, s.lost,
                 s.gd > 0 ? `+${s.gd}` : String(s.gd), s.pts].map((v, j) => (
                 <span key={j} style={{
-                  textAlign: "center", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center",
-                  color: j === 5 ? (qualified ? "#00c896" : "#f1f5f9") : j === 4 ? (s.gd > 0 ? "#00c896" : s.gd < 0 ? "#ef4444" : "#64748b") : "#94a3b8",
-                  fontWeight: j === 5 ? 800 : 400,
+                  textAlign: "center", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "var(--font-mono)",
+                  color: j === 5 ? (qualified ? "var(--accent)" : "var(--text)")
+                       : j === 4 ? (s.gd > 0 ? "var(--accent)" : s.gd < 0 ? "var(--red, #f87171)" : "var(--text3)")
+                       : "var(--text2)",
+                  fontWeight: j === 5 ? 700 : 400,
                 }}>
                   {v}
                 </span>
@@ -596,17 +627,17 @@ function StandingsTab({ data, onAskAgent }: { data: FixtureData; onAskAgent?: (p
         })}
       </div>
 
-      <div style={{ display: "flex", gap: 16, fontSize: 10, marginBottom: 10 }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#00c896" }}>
-          <span style={{ width: 10, height: 3, background: "#00c896", borderRadius: 2, display: "inline-block" }} />
+      <div style={{ display: "flex", gap: 16, fontSize: 11, marginBottom: 10 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--accent)" }}>
+          <span style={{ width: 12, height: 3, background: "var(--accent)", borderRadius: 2, display: "inline-block" }} />
           Top 2 qualify
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#f59e0b" }}>
-          <span style={{ width: 10, height: 3, background: "#f59e0b", borderRadius: 2, display: "inline-block" }} />
+        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--yellow, #fbbf24)" }}>
+          <span style={{ width: 12, height: 3, background: "var(--yellow, #fbbf24)", borderRadius: 2, display: "inline-block" }} />
           Best 3rd contender
         </span>
       </div>
-      <div style={{ fontSize: 10, color: "#334155", marginBottom: 12 }}>
+      <div style={{ fontSize: 10.5, color: "var(--text4)", marginBottom: 14, fontFamily: "var(--font-mono)" }}>
         📊 Projected standings based on ELO prediction model — not actual match results.
       </div>
 
@@ -614,12 +645,13 @@ function StandingsTab({ data, onAskAgent }: { data: FixtureData; onAskAgent?: (p
         <button
           onClick={() => onAskAgent(`Analyse ${activeGroup} at the 2026 World Cup — who are the favourites, key clashes, and how will the final standings look?`)}
           style={{
-            padding: "7px 14px", borderRadius: 8, border: "1px solid #00c89644",
-            background: "transparent", color: "#00c896", fontSize: 11,
-            cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
+            padding: "8px 16px", borderRadius: 9, border: "1px solid var(--accent-border)",
+            background: "var(--accent-dim)", color: "var(--accent)", fontSize: 12,
+            cursor: "pointer", fontFamily: "var(--font-sans)", fontWeight: 500,
+            transition: "all 0.15s", display: "flex", alignItems: "center", gap: 6,
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#00c89611"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(0,200,150,0.12)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--accent-dim)"; }}
         >
           ⚽ Ask agent to analyse {activeGroup} →
         </button>
@@ -780,43 +812,52 @@ export default function FixturesPanel({ onAskAgent }: FixturesPanelProps) {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "'DM Mono', monospace" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", fontFamily: "var(--font-sans, 'Inter', sans-serif)" }}>
       {/* Sub-tab bar */}
       <div style={{
-        display: "flex", borderBottom: "1px solid #1e2d50",
-        background: "#060b14", flexShrink: 0, padding: "0 16px",
+        display: "flex", borderBottom: "1px solid var(--border, #1a2d4a)",
+        background: "rgba(6,11,20,0.8)", flexShrink: 0,
+        padding: "6px 16px 0", gap: 2, overflowX: "auto", scrollbarWidth: "none",
       }}>
-        {SUB_TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setSubTab(t.id)}
-            style={{
-              padding: "10px 14px", background: "transparent", border: "none",
-              borderBottom: subTab === t.id ? "2px solid #00c896" : "2px solid transparent",
-              color: subTab === t.id ? "#00c896" : "#64748b",
-              fontSize: 11, cursor: "pointer", fontFamily: "inherit",
-              transition: "all 0.15s", whiteSpace: "nowrap",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+        {SUB_TABS.map((t) => {
+          const active = subTab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              style={{
+                padding: "7px 13px 9px", background: active ? "var(--accent-dim)" : "transparent",
+                border: "none",
+                borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+                borderRadius: "7px 7px 0 0",
+                color: active ? "var(--accent)" : "var(--text3)",
+                fontSize: 11.5, fontWeight: active ? 600 : 400,
+                cursor: "pointer", fontFamily: "var(--font-sans)",
+                transition: "all 0.15s", whiteSpace: "nowrap",
+              }}
+              onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.color = "var(--text2)"; }}
+              onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.color = "var(--text3)"; }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 24px" }}>
-        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 18px 28px" }}>
+        <div style={{ maxWidth: 800, margin: "0 auto" }}>
           {subTab === "schedule" && (
             loading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {[1, 2, 3].map((i) => (
-                  <div key={i} style={{ height: 120, background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 12, animation: "shimmer 1.5s ease infinite" }} />
+                  <div key={i} style={{ height: 130, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, animation: "shimmer 1.5s ease infinite", opacity: 0.6 }} />
                 ))}
               </div>
             ) : fixtures ? (
               <ScheduleTab data={fixtures} onAskAgent={onAskAgent} />
             ) : (
-              <div style={{ textAlign: "center", color: "#64748b", padding: 40 }}>
+              <div style={{ textAlign: "center", color: "var(--text3)", padding: 40 }}>
                 Could not load fixture schedule. Try refreshing.
               </div>
             )
@@ -826,13 +867,13 @@ export default function FixturesPanel({ onAskAgent }: FixturesPanelProps) {
             loading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} style={{ height: 44, background: "#0d1421", border: "1px solid #1e2d50", borderRadius: 8, animation: "shimmer 1.5s ease infinite" }} />
+                  <div key={i} style={{ height: 48, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, animation: "shimmer 1.5s ease infinite", opacity: 0.6 }} />
                 ))}
               </div>
             ) : fixtures ? (
               <StandingsTab data={fixtures} onAskAgent={onAskAgent} />
             ) : (
-              <div style={{ textAlign: "center", color: "#64748b", padding: 40 }}>
+              <div style={{ textAlign: "center", color: "var(--text3)", padding: 40 }}>
                 Could not load standings data. Try refreshing.
               </div>
             )
