@@ -2,6 +2,9 @@
 const nextConfig = {
   output: "standalone",
 
+  // Enables src/instrumentation.ts → Arize Phoenix OTel tracing on startup
+  instrumentationHook: true,
+
   experimental: {
     // Next.js 14.x key — renamed to serverExternalPackages in Next.js 15+
     serverComponentsExternalPackages: [
@@ -9,6 +12,11 @@ const nextConfig = {
       "@modelcontextprotocol/sdk",
       "@neondatabase/serverless",
       "playwright-core",
+      // Arize Phoenix OTel packages — keep in Node.js runtime, not bundled by webpack
+      "@arizeai/phoenix-otel",
+      "@arizeai/openinference-semantic-conventions",
+      "@opentelemetry/sdk-trace-node",
+      "@opentelemetry/exporter-trace-otlp-http",
     ],
   },
 

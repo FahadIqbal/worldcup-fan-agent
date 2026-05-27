@@ -5,8 +5,10 @@ import { VertexAI } from "@google-cloud/vertexai";
 import { tavilySearch } from "@/tools/tavily";
 import { neonQuery, neonUpsert } from "@/tools/neon";
 import { browserScrape } from "@/tools/browserbase";
+import { phoenixSelfReflect } from "@/tools/phoenix";
 import { detectCompoundGoal, buildSkillPrompt, type Skill, type SkillId } from "./skills";
 import type { UserLocation } from "@/types/location";
+import { tracer, A, SpanStatusCode } from "@/lib/tracer";
 import {
   createSession, getSession, appendMessage, logToolCall,
   updateSessionContext, persistRunLog, loadUserContext,
@@ -161,6 +163,18 @@ export async function runFanAgent(
 
   let result: { text: string; toolsUsed: string[]; tokensUsed: number };
 
+  // ── Arize Phoenix: AGENT span wraps the entire session turn ──────────────
+  const agentSpan = tracer.startSpan("agent.run", {
+    attributes: {
+      [A.SPAN_KIND]: "AGENT",
+      [A.SESSION_ID]: state.sessionId,
+      [A.USER_ID]: req.userId,
+      [A.SKILL_ID]: primarySkill.id,
+      [A.SKILL_NAME]: primarySkill.name,
+      [A.LLM_INPUT]: req.message.slice(0, 2000),
+    },
+  });
+
   try {
     result = await agentLoop({
       state,
@@ -181,8 +195,17 @@ export async function runFanAgent(
       result.toolsUsed.push(...secondary.toolsUsed);
       result.tokensUsed += secondary.tokensUsed;
     }
+
+    agentSpan.setAttributes({
+      [A.LLM_OUTPUT]: result.text.slice(0, 2000),
+      [A.LLM_TOKENS_TOTAL]: result.tokensUsed,
+      "agent.tools_used": result.toolsUsed.join(","),
+    });
+    agentSpan.setStatus({ code: SpanStatusCode.OK });
   } catch (err) {
     const errStr = String(err);
+    agentSpan.setStatus({ code: SpanStatusCode.ERROR, message: errStr });
+
     // Fall back to Tavily live search when:
     // - Vertex AI auth is missing locally
     // - Publisher Model 404 (project hasn't enabled Vertex AI generative models in Console)
@@ -203,6 +226,8 @@ export async function runFanAgent(
       if (onToken) await onToken(msg);
       result = { text: msg, toolsUsed: [], tokensUsed: 0 };
     }
+  } finally {
+    agentSpan.end();
   }
 
   // Persist run log to Neon (non-fatal if it fails)
@@ -251,9 +276,37 @@ async function agentLoop(params: {
   let nextUserMsg = currentUserMessage;
 
   for (let round = 0; round < skill.maxRounds; round++) {
-    const response = await chat.sendMessage(nextUserMsg);
+    // ── Arize Phoenix: LLM span per Gemini call ──────────────────────────
+    const llmSpan = tracer.startSpan(`llm.gemini.round_${round}`, {
+      attributes: {
+        [A.SPAN_KIND]: "LLM",
+        [A.LLM_MODEL]: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
+        [A.LLM_SYSTEM]: "Google Gemini",
+        [A.LLM_INPUT]: nextUserMsg.slice(0, 2000),
+        "llm.round": round,
+        "skill.id": skill.id,
+      },
+    });
+
+    let response: Awaited<ReturnType<typeof chat.sendMessage>>;
+    try {
+      response = await chat.sendMessage(nextUserMsg);
+      llmSpan.setStatus({ code: SpanStatusCode.OK });
+    } catch (err) {
+      llmSpan.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+      llmSpan.end();
+      throw err;
+    }
+
     const text = response.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    totalTokens += response.response.usageMetadata?.totalTokenCount ?? 0;
+    const roundTokens = response.response.usageMetadata?.totalTokenCount ?? 0;
+    totalTokens += roundTokens;
+
+    llmSpan.setAttributes({
+      [A.LLM_OUTPUT]: text.slice(0, 2000),
+      [A.LLM_TOKENS_TOTAL]: roundTokens,
+    });
+    llmSpan.end();
 
     if (!text) break;
 
@@ -281,7 +334,7 @@ async function agentLoop(params: {
     const readSettled = await Promise.allSettled(
       readCalls.map(async (call) => {
         const t0 = Date.now();
-        const res = await executeTool(call);
+        const res = await executeTracedTool(call);
         logToolCall(state.sessionId, {
           name: call.name, args: call.args, result: res, durationMs: Date.now() - t0,
         });
@@ -295,7 +348,7 @@ async function agentLoop(params: {
 
     for (const call of writeCalls) {
       const t0 = Date.now();
-      const res = await executeTool(call);
+      const res = await executeTracedTool(call);
       logToolCall(state.sessionId, {
         name: call.name, args: call.args, result: res, durationMs: Date.now() - t0,
       });
@@ -314,25 +367,53 @@ async function agentLoop(params: {
 
 // ─── Tool executor ─────────────────────────────────────────────────────────
 
+// ── Plain tool executor (no tracing) ─────────────────────────────────────
+
 async function executeTool(call: ParsedToolCall): Promise<unknown> {
+  switch (call.name) {
+    case "tavily_search":
+      return await tavilySearch(String(call.args.query ?? ""));
+    case "neon_query":
+      return await neonQuery(String(call.args.sql ?? "SELECT 1"));
+    case "neon_upsert":
+      return await neonUpsert(
+        String(call.args.table ?? ""),
+        (call.args.data as Record<string, unknown>) ?? {}
+      );
+    case "browser_scrape":
+      return await browserScrape(String(call.args.url ?? ""));
+    case "phoenix_self_reflect":
+      // Arize Phoenix self-improvement: agent reads its own trace data
+      return await phoenixSelfReflect(String(call.args.query ?? "performance summary"));
+    default:
+      return { error: `Unknown tool: ${call.name}` };
+  }
+}
+
+// ── Traced tool executor: wraps executeTool with a Phoenix TOOL span ──────
+// Each tool call creates its own child span → visible in Phoenix trace tree.
+
+async function executeTracedTool(call: ParsedToolCall): Promise<unknown> {
+  const span = tracer.startSpan(`tool.${call.name}`, {
+    attributes: {
+      [A.SPAN_KIND]: "TOOL",
+      [A.TOOL_NAME]: call.name,
+      [A.TOOL_INPUT]: JSON.stringify(call.args).slice(0, 1000),
+    },
+  });
+
   try {
-    switch (call.name) {
-      case "tavily_search":
-        return await tavilySearch(String(call.args.query ?? ""));
-      case "neon_query":
-        return await neonQuery(String(call.args.sql ?? "SELECT 1"));
-      case "neon_upsert":
-        return await neonUpsert(
-          String(call.args.table ?? ""),
-          (call.args.data as Record<string, unknown>) ?? {}
-        );
-      case "browser_scrape":
-        return await browserScrape(String(call.args.url ?? ""));
-      default:
-        return { error: `Unknown tool: ${call.name}` };
-    }
+    const result = await executeTool(call);
+    span.setAttributes({
+      [A.TOOL_OUTPUT]: JSON.stringify(result).slice(0, 2000),
+    });
+    span.setStatus({ code: SpanStatusCode.OK });
+    return result;
   } catch (err) {
+    span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
     return { error: String(err) };
+  } finally {
+    span.end();
   }
 }
 

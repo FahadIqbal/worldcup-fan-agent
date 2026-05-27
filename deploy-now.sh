@@ -65,6 +65,8 @@ store_secret NEON_DATABASE_URL    "$(grep ^NEON_DATABASE_URL .env.local | cut -d
 store_secret BROWSERBASE_API_KEY  "$(grep ^BROWSERBASE_API_KEY .env.local | cut -d= -f2-)"
 store_secret BROWSERBASE_PROJECT_ID "$(grep ^BROWSERBASE_PROJECT_ID .env.local | cut -d= -f2-)"
 store_secret SCHEDULER_SECRET     "$(grep ^SCHEDULER_SECRET .env.local | cut -d= -f2-)"
+# Arize Phoenix — observability & self-improvement loop
+store_secret PHOENIX_API_KEY      "$(grep ^PHOENIX_API_KEY .env.local | cut -d= -f2-)"
 
 # ── 4. Build & push Docker image via Cloud Build ─
 echo "▶ Building Docker image (Cloud Build)..."
@@ -87,8 +89,8 @@ gcloud run deploy $SERVICE_NAME \
   --timeout=300 \
   --cpu=1 \
   --memory=1Gi \
-  --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=$REGION,GEMINI_MODEL=gemini-2.0-flash,GEMINI_MAX_OUTPUT_TOKENS=4096,GEMINI_TEMPERATURE=0.3" \
-  --set-secrets="GEMINI_API_KEY=gemini-api-key:latest,TAVILY_API_KEY=tavily-api-key:latest,NEON_DATABASE_URL=neon-database-url:latest,BROWSERBASE_API_KEY=browserbase-api-key:latest,BROWSERBASE_PROJECT_ID=browserbase-project-id:latest,SCHEDULER_SECRET=scheduler-secret:latest" \
+  --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=$REGION,GEMINI_MODEL=gemini-2.0-flash,GEMINI_MAX_OUTPUT_TOKENS=4096,GEMINI_TEMPERATURE=0.3,PHOENIX_COLLECTOR_ENDPOINT=https://app.phoenix.arize.com,PHOENIX_PROJECT=worldcup-fan-agent" \
+  --set-secrets="GEMINI_API_KEY=gemini-api-key:latest,TAVILY_API_KEY=tavily-api-key:latest,NEON_DATABASE_URL=neon-database-url:latest,BROWSERBASE_API_KEY=browserbase-api-key:latest,BROWSERBASE_PROJECT_ID=browserbase-project-id:latest,SCHEDULER_SECRET=scheduler-secret:latest,PHOENIX_API_KEY=phoenix-api-key:latest" \
   --project=$PROJECT_ID
 
 SERVICE_URL=$(gcloud run services describe $SERVICE_NAME \
