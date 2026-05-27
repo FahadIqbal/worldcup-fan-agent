@@ -206,10 +206,12 @@ export async function runFanAgent(
     const errStr = String(err);
     agentSpan.setStatus({ code: SpanStatusCode.ERROR, message: errStr });
 
-    // Fall back to Tavily live search when:
-    // - Vertex AI auth is missing locally
-    // - Publisher Model 404 (project hasn't enabled Vertex AI generative models in Console)
-    // - No GCP project configured
+    // Fall back to Tavily live search for any LLM-layer failure:
+    // - Missing / invalid credentials
+    // - Vertex AI publisher model not enabled (404)
+    // - API quota exhausted / rate-limited (429) ← free-tier daily cap
+    // - Any other upstream Gemini error
+    // This keeps users getting real answers instead of error messages.
     const isMissingCreds =
       errStr.includes("GoogleAuthError") ||
       errStr.includes("Unable to authenticate") ||
@@ -218,8 +220,20 @@ export async function runFanAgent(
       errStr.includes("NOT_FOUND") ||
       errStr.includes("was not found") ||
       errStr.includes("does not have access to it");
+    const isQuotaExhausted =
+      errStr.includes("429") ||
+      errStr.includes("Too Many Requests") ||
+      errStr.includes("quota") ||
+      errStr.includes("RESOURCE_EXHAUSTED") ||
+      errStr.includes("rate limit") ||
+      errStr.includes("exceeded your current quota");
 
-    if (isMissingCreds || isModelNotFound) {
+    if (isMissingCreds || isModelNotFound || isQuotaExhausted) {
+      // Tag the agent span so Phoenix shows why we fell back
+      agentSpan.setAttribute("fallback.reason",
+        isQuotaExhausted ? "quota_exhausted" :
+        isModelNotFound  ? "model_not_found" : "missing_creds"
+      );
       result = await tavilyFallbackResponse(primarySkill, req.message, req.userLocation, onToken);
     } else {
       const msg = `I ran into an issue: ${errStr}\n\nPlease try again.`;
@@ -544,7 +558,7 @@ async function tavilyFallbackResponse(
       text += "---\n\n";
     }
 
-    text += `*Powered by Tavily live search · Add a GEMINI_API_KEY for the full Gemini 2.0 Flash agentic experience.*`;
+    text += `*Powered by Tavily live search · [Enable billing on your Gemini API key](https://aistudio.google.com/app/apikey) to unlock the full Gemini 2.0 Flash agentic experience.*`;
   }
 
   if (onToken) {
