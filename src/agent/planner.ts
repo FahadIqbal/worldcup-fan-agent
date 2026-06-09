@@ -58,7 +58,7 @@ function getModel(): {
   startChat(opts: { history: Array<{ role: string; parts: Array<{ text: string }> }> }): GeminiChat;
 } {
   const apiKey = process.env.GEMINI_API_KEY;
-  const modelName = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  const modelName = process.env.GEMINI_MODEL ?? "gemini-3.1-pro-preview";
   const maxOutputTokens = parseInt(process.env.GEMINI_MAX_OUTPUT_TOKENS ?? "4096");
   const temperature = parseFloat(process.env.GEMINI_TEMPERATURE ?? "0.3");
 
@@ -294,7 +294,7 @@ async function agentLoop(params: {
     const llmSpan = tracer.startSpan(`llm.gemini.round_${round}`, {
       attributes: {
         [A.SPAN_KIND]: "LLM",
-        [A.LLM_MODEL]: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
+        [A.LLM_MODEL]: process.env.GEMINI_MODEL ?? "gemini-3.1-pro-preview",
         [A.LLM_SYSTEM]: "Google Gemini",
         [A.LLM_INPUT]: nextUserMsg.slice(0, 2000),
         "llm.round": round,

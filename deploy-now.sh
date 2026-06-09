@@ -58,7 +58,7 @@ store_secret() {
 }
 
 store_secret GCP_PROJECT_ID       "$PROJECT_ID"
-store_secret GEMINI_MODEL         "gemini-2.0-flash"
+store_secret GEMINI_MODEL         "gemini-3.1-pro-preview"
 store_secret GEMINI_API_KEY       "$(grep ^GEMINI_API_KEY .env.local | cut -d= -f2-)"
 store_secret TAVILY_API_KEY       "$(grep ^TAVILY_API_KEY .env.local | cut -d= -f2-)"
 store_secret NEON_DATABASE_URL    "$(grep ^NEON_DATABASE_URL .env.local | cut -d= -f2-)"
@@ -89,7 +89,7 @@ gcloud run deploy $SERVICE_NAME \
   --timeout=300 \
   --cpu=1 \
   --memory=1Gi \
-  --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=$REGION,GEMINI_MODEL=gemini-2.0-flash,GEMINI_MAX_OUTPUT_TOKENS=4096,GEMINI_TEMPERATURE=0.3,PHOENIX_COLLECTOR_ENDPOINT=https://app.phoenix.arize.com,PHOENIX_PROJECT=worldcup-fan-agent" \
+  --set-env-vars="NODE_ENV=production,GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=$REGION,GEMINI_MODEL=gemini-3.1-pro-preview,GEMINI_MAX_OUTPUT_TOKENS=4096,GEMINI_TEMPERATURE=0.3,PHOENIX_COLLECTOR_ENDPOINT=https://app.phoenix.arize.com,PHOENIX_PROJECT=worldcup-fan-agent" \
   --set-secrets="GEMINI_API_KEY=gemini-api-key:latest,TAVILY_API_KEY=tavily-api-key:latest,NEON_DATABASE_URL=neon-database-url:latest,BROWSERBASE_API_KEY=browserbase-api-key:latest,BROWSERBASE_PROJECT_ID=browserbase-project-id:latest,SCHEDULER_SECRET=scheduler-secret:latest,PHOENIX_API_KEY=phoenix-api-key:latest" \
   --project=$PROJECT_ID
 

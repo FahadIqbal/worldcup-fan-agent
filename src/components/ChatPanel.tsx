@@ -216,17 +216,25 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({ userId, userLocation, initialPrompt, onPromptConsumed }: ChatPanelProps) {
-  const daysToWC = Math.max(0, Math.ceil((new Date("2026-06-11").getTime() - Date.now()) / 86400000));
-  const wcIsOn = Date.now() >= new Date("2026-06-11").getTime() && Date.now() <= new Date("2026-07-19").getTime();
+  const [messages, setMessages] = useState<Message[]>([]);
 
-  const welcomeContent = wcIsOn
-    ? "🔴 **World Cup 2026 is LIVE!**\n\nI'm your real-time AI co-pilot for the biggest sporting event on Earth.\n\nAsk me:\n📡  What's the score right now?\n🎟  Which matches still have tickets?\n🏨  Last-minute hotels near stadiums\n⚽  Group standings & knockout predictions\n🏆  Fantasy advice for today's matches\n\nWhat do you need?"
-    : `⚽ **World Cup 2026 — ${daysToWC} days to kick-off!**\n\nI'm your AI travel and logistics agent for the 2026 FIFA World Cup across the USA, Canada, and Mexico.\n\nI can help you:\n✈  Plan your complete match trip (flights, hotels, itinerary)\n📋  Check visa & entry requirements for your passport\n🏨  Find hotels near all 16 stadiums\n🔔  Set flight price alerts — get notified when fares drop\n📊  View group standings & knockout bracket predictions\n🏆  Build your fantasy squad from 33 WC 2026 stars\n\nWhere are you flying from, and which match are you hoping to attend?`;
+  useEffect(() => {
+    const daysToWC = Math.max(0, Math.ceil((new Date("2026-06-11").getTime() - Date.now()) / 86400000));
+    const wcIsOn = Date.now() >= new Date("2026-06-11").getTime() && Date.now() <= new Date("2026-07-19").getTime();
 
-  const [messages, setMessages] = useState<Message[]>([{
-    id: "welcome", role: "agent", timestamp: new Date(), skillId: "SK-01",
-    content: welcomeContent,
-  }]);
+    const welcomeContent = wcIsOn
+      ? "🔴 **World Cup 2026 is LIVE!**\n\nI'm your real-time AI co-pilot for the biggest sporting event on Earth.\n\nAsk me:\n📡  What's the score right now?\n🎟  Which matches still have tickets?\n🏨  Last-minute hotels near stadiums\n⚽  Group standings & knockout predictions\n🏆  Fantasy advice for today's matches\n\nWhat do you need?"
+      : `⚽ **World Cup 2026 — ${daysToWC} days to kick-off!**\n\nI'm your AI travel and logistics agent for the 2026 FIFA World Cup across the USA, Canada, and Mexico.\n\nI can help you:\n✈  Plan your complete match trip (flights, hotels, itinerary)\n📋  Check visa & entry requirements for your passport\n🏨  Find hotels near all 16 stadiums\n🔔  Set flight price alerts — get notified when fares drop\n📊  View group standings & knockout bracket predictions\n🏆  Build your fantasy squad from 33 WC 2026 stars\n\nWhere are you flying from, and which match are you hoping to attend?`;
+
+    setMessages([{
+      id: "welcome",
+      role: "agent",
+      timestamp: new Date(),
+      skillId: "SK-01",
+      content: welcomeContent,
+    }]);
+  }, []);
+
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
