@@ -58,16 +58,24 @@ function getModel(): {
   startChat(opts: { history: Array<{ role: string; parts: Array<{ text: string }> }> }): GeminiChat;
 } {
   const apiKey = process.env.GEMINI_API_KEY;
-  const modelName = process.env.GEMINI_MODEL ?? "gemini-3.1-pro-preview";
+  const modelName = process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
   const maxOutputTokens = parseInt(process.env.GEMINI_MAX_OUTPUT_TOKENS ?? "4096");
   const temperature = parseFloat(process.env.GEMINI_TEMPERATURE ?? "0.3");
+
+  const generationConfig: any = { maxOutputTokens, temperature, topP: 0.8 };
+  // Enable reasoning/thinking config for compatible models (Gemini 3.5, 3.1)
+  if (modelName.includes("gemini-3.5") || modelName.includes("gemini-3.1")) {
+    generationConfig.thinkingConfig = {
+      thinkingLevel: "MEDIUM",
+    };
+  }
 
   if (apiKey) {
     // ── Google AI Studio / Gemini API ──────────────────────────────────────
     const genAI = new GoogleGenerativeAI(apiKey);
     const genModel = genAI.getGenerativeModel({
       model: modelName,
-      generationConfig: { maxOutputTokens, temperature, topP: 0.8 },
+      generationConfig,
     });
     return {
       startChat(opts) {
@@ -102,7 +110,7 @@ function getModel(): {
   });
   return vertex.getGenerativeModel({
     model: modelName,
-    generationConfig: { maxOutputTokens, temperature, topP: 0.8 },
+    generationConfig,
   }) as ReturnType<typeof getModel>;
 }
 
@@ -294,7 +302,7 @@ async function agentLoop(params: {
     const llmSpan = tracer.startSpan(`llm.gemini.round_${round}`, {
       attributes: {
         [A.SPAN_KIND]: "LLM",
-        [A.LLM_MODEL]: process.env.GEMINI_MODEL ?? "gemini-3.1-pro-preview",
+        [A.LLM_MODEL]: process.env.GEMINI_MODEL ?? "gemini-3.5-flash",
         [A.LLM_SYSTEM]: "Google Gemini",
         [A.LLM_INPUT]: nextUserMsg.slice(0, 2000),
         "llm.round": round,
