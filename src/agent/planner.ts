@@ -70,153 +70,102 @@ function getModel(): {
     };
   }
 
+  const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
+
+  // Build the fallback chain dynamically based on available auth credentials
+  const fallbackChain: Array<{ provider: "google-ai" | "vertex-ai"; model: string; config: any }> = [];
   if (apiKey) {
-    // ── Google AI Studio / Gemini API ──────────────────────────────────────
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const genModel = genAI.getGenerativeModel({
-      model: modelName,
-      generationConfig,
-    });
-    return {
-      startChat(opts) {
-        const currentHistory = [...opts.history];
-        const chat = genModel.startChat({
-          history: opts.history.map((h) => ({
-            role: h.role as "user" | "model",
-            parts: h.parts.map((p) => ({ text: p.text })),
-          })),
-        });
+    fallbackChain.push(
+      { provider: "google-ai", model: modelName, config: generationConfig },
+      { provider: "vertex-ai", model: modelName, config: generationConfig },
+      { provider: "google-ai", model: "gemini-2.5-flash", config: { maxOutputTokens, temperature, topP: 0.8 } },
+      { provider: "vertex-ai", model: "gemini-1.5-flash", config: { maxOutputTokens, temperature, topP: 0.8 } }
+    );
+  } else {
+    fallbackChain.push(
+      { provider: "vertex-ai", model: modelName, config: generationConfig },
+      { provider: "vertex-ai", model: "gemini-1.5-flash", config: { maxOutputTokens, temperature, topP: 0.8 } }
+    );
+  }
 
-        let activeChat: any = null;
+  return {
+    startChat(opts) {
+      const currentHistory = [...opts.history];
+      let fallbackIndex = 0;
 
-        return {
-          async sendMessage(msg: string) {
-            if (activeChat) {
-              const res = await activeChat.sendMessage(msg);
-              const text = res.response.text ? res.response.text() : (res.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
-              return {
-                response: {
-                  candidates: [{ content: { parts: [{ text }] } }],
-                  usageMetadata: {
-                    totalTokenCount: res.response.usageMetadata?.totalTokenCount,
-                  },
-                },
-              };
-            }
+      return {
+        async sendMessage(msg: string) {
+          // Keep user message in history
+          currentHistory.push({ role: "user", parts: [{ text: msg }] });
+
+          while (fallbackIndex < fallbackChain.length) {
+            const current = fallbackChain[fallbackIndex];
+            console.log(`[Agent Model Chain] Attempting sendMessage with model ${current.model} via ${current.provider} (stage ${fallbackIndex + 1}/${fallbackChain.length})...`);
 
             try {
-              // Try Google AI Studio (Primary model)
-              const res = await chat.sendMessage(msg);
-              const text = res.response.text();
-              // Keep local history synchronized
-              currentHistory.push(
-                { role: "user", parts: [{ text: msg }] },
-                { role: "model", parts: [{ text }] }
-              );
-              return {
-                response: {
-                  candidates: [{ content: { parts: [{ text }] } }],
-                  usageMetadata: {
-                    totalTokenCount: res.response.usageMetadata?.totalTokenCount,
-                  },
-                },
-              };
-            } catch (err) {
-              console.error(`GoogleGenerativeAI primary model (${modelName}) failed. Trying Vertex AI fallback...`, err);
-              try {
-                // Try Vertex AI (Primary model)
+              let text = "";
+              let totalTokenCount = 0;
+
+              if (current.provider === "google-ai") {
+                if (!genAI) throw new Error("Google AI Studio credentials not configured.");
+                const modelInstance = genAI.getGenerativeModel({
+                  model: current.model,
+                  generationConfig: current.config,
+                });
+                const tempChat = modelInstance.startChat({
+                  history: currentHistory.slice(0, -1).map((h) => ({
+                    role: h.role as "user" | "model",
+                    parts: h.parts.map((p) => ({ text: p.text })),
+                  })),
+                });
+                const res = await tempChat.sendMessage(msg);
+                text = res.response.text();
+                totalTokenCount = res.response.usageMetadata?.totalTokenCount ?? 0;
+              } else {
+                // Vertex AI
                 const vertex = new VertexAI({
                   project: process.env.GCP_PROJECT_ID!,
                   location: process.env.GCP_REGION ?? "us-central1",
                 });
-                const vertexModel = vertex.getGenerativeModel({
-                  model: modelName,
-                  generationConfig,
+                const modelInstance = vertex.getGenerativeModel({
+                  model: current.model,
+                  generationConfig: current.config,
                 });
-                const vertexChat = vertexModel.startChat({
-                  history: currentHistory.map((h) => ({
+                const tempChat = modelInstance.startChat({
+                  history: currentHistory.slice(0, -1).map((h) => ({
                     role: h.role,
                     parts: h.parts.map((p) => ({ text: p.text })),
                   })),
                 });
-                const res = await vertexChat.sendMessage(msg);
-                const text = res.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-                
-                // Keep local history synchronized
-                currentHistory.push(
-                  { role: "user", parts: [{ text: msg }] },
-                  { role: "model", parts: [{ text }] }
-                );
-                
-                activeChat = {
-                  async sendMessage(m: string) {
-                    return vertexChat.sendMessage(m);
-                  }
-                };
-
-                return {
-                  response: {
-                    candidates: [{ content: { parts: [{ text }] } }],
-                    usageMetadata: {
-                      totalTokenCount: res.response.usageMetadata?.totalTokenCount,
-                    },
-                  },
-                };
-              } catch (vertexErr) {
-                console.error(`Vertex AI fallback failed. Trying GoogleGenerativeAI with stable gemini-2.5-flash...`, vertexErr);
-                try {
-                  // Try Google AI Studio (gemini-2.5-flash backup)
-                  const backupModelName = "gemini-2.5-flash";
-                  const backupModel = genAI.getGenerativeModel({
-                    model: backupModelName,
-                    generationConfig: { maxOutputTokens, temperature, topP: 0.8 },
-                  });
-                  const backupChat = backupModel.startChat({
-                    history: currentHistory.map((h) => ({
-                      role: h.role as "user" | "model",
-                      parts: h.parts.map((p) => ({ text: p.text })),
-                    })),
-                  });
-                  const res = await backupChat.sendMessage(msg);
-                  const text = res.response.text();
-
-                  // Keep local history synchronized
-                  currentHistory.push(
-                    { role: "user", parts: [{ text: msg }] },
-                    { role: "model", parts: [{ text }] }
-                  );
-
-                  activeChat = backupChat;
-
-                  return {
-                    response: {
-                      candidates: [{ content: { parts: [{ text }] } }],
-                      usageMetadata: {
-                        totalTokenCount: res.response.usageMetadata?.totalTokenCount,
-                      },
-                    },
-                  };
-                } catch (backupErr) {
-                  console.error("All generative model endpoints failed.", backupErr);
-                  throw backupErr;
-                }
+                const res = await tempChat.sendMessage(msg);
+                text = res.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+                totalTokenCount = res.response.usageMetadata?.totalTokenCount ?? 0;
               }
-            }
-          },
-        };
-      },
-    };
-  }
 
-  // ── Vertex AI (requires Publisher Model access in GCP Console) ────────────
-  const vertex = new VertexAI({
-    project: process.env.GCP_PROJECT_ID!,
-    location: process.env.GCP_REGION ?? "us-central1",
-  });
-  return vertex.getGenerativeModel({
-    model: modelName,
-    generationConfig,
-  }) as ReturnType<typeof getModel>;
+              // On success, sync history and return
+              currentHistory.push({ role: "model", parts: [{ text }] });
+              console.log(`[Agent Model Chain] Success using model ${current.model} via ${current.provider}.`);
+
+              return {
+                response: {
+                  candidates: [{ content: { parts: [{ text }] } }],
+                  usageMetadata: {
+                    totalTokenCount,
+                  },
+                },
+              };
+            } catch (err: any) {
+              console.error(`[Agent Model Chain] Model ${current.model} via ${current.provider} failed:`, err.message || err);
+              // Move to the next fallback level
+              fallbackIndex++;
+            }
+          }
+
+          throw new Error("All generative models in the fallback chain failed to generate content.");
+        }
+      };
+    }
+  };
 }
 
 // ─── Main entry point ──────────────────────────────────────────────────────
