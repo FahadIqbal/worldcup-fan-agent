@@ -79,24 +79,129 @@ function getModel(): {
     });
     return {
       startChat(opts) {
+        const currentHistory = [...opts.history];
         const chat = genModel.startChat({
           history: opts.history.map((h) => ({
             role: h.role as "user" | "model",
             parts: h.parts.map((p) => ({ text: p.text })),
           })),
         });
+
+        let activeChat: any = null;
+
         return {
           async sendMessage(msg: string) {
-            const res = await chat.sendMessage(msg);
-            const text = res.response.text();
-            return {
-              response: {
-                candidates: [{ content: { parts: [{ text }] } }],
-                usageMetadata: {
-                  totalTokenCount: res.response.usageMetadata?.totalTokenCount,
+            if (activeChat) {
+              const res = await activeChat.sendMessage(msg);
+              const text = res.response.text ? res.response.text() : (res.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
+              return {
+                response: {
+                  candidates: [{ content: { parts: [{ text }] } }],
+                  usageMetadata: {
+                    totalTokenCount: res.response.usageMetadata?.totalTokenCount,
+                  },
                 },
-              },
-            };
+              };
+            }
+
+            try {
+              // Try Google AI Studio (Primary model)
+              const res = await chat.sendMessage(msg);
+              const text = res.response.text();
+              // Keep local history synchronized
+              currentHistory.push(
+                { role: "user", parts: [{ text: msg }] },
+                { role: "model", parts: [{ text }] }
+              );
+              return {
+                response: {
+                  candidates: [{ content: { parts: [{ text }] } }],
+                  usageMetadata: {
+                    totalTokenCount: res.response.usageMetadata?.totalTokenCount,
+                  },
+                },
+              };
+            } catch (err) {
+              console.error(`GoogleGenerativeAI primary model (${modelName}) failed. Trying Vertex AI fallback...`, err);
+              try {
+                // Try Vertex AI (Primary model)
+                const vertex = new VertexAI({
+                  project: process.env.GCP_PROJECT_ID!,
+                  location: process.env.GCP_REGION ?? "us-central1",
+                });
+                const vertexModel = vertex.getGenerativeModel({
+                  model: modelName,
+                  generationConfig,
+                });
+                const vertexChat = vertexModel.startChat({
+                  history: currentHistory.map((h) => ({
+                    role: h.role,
+                    parts: h.parts.map((p) => ({ text: p.text })),
+                  })),
+                });
+                const res = await vertexChat.sendMessage(msg);
+                const text = res.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+                
+                // Keep local history synchronized
+                currentHistory.push(
+                  { role: "user", parts: [{ text: msg }] },
+                  { role: "model", parts: [{ text }] }
+                );
+                
+                activeChat = {
+                  async sendMessage(m: string) {
+                    return vertexChat.sendMessage(m);
+                  }
+                };
+
+                return {
+                  response: {
+                    candidates: [{ content: { parts: [{ text }] } }],
+                    usageMetadata: {
+                      totalTokenCount: res.response.usageMetadata?.totalTokenCount,
+                    },
+                  },
+                };
+              } catch (vertexErr) {
+                console.error(`Vertex AI fallback failed. Trying GoogleGenerativeAI with stable gemini-2.5-flash...`, vertexErr);
+                try {
+                  // Try Google AI Studio (gemini-2.5-flash backup)
+                  const backupModelName = "gemini-2.5-flash";
+                  const backupModel = genAI.getGenerativeModel({
+                    model: backupModelName,
+                    generationConfig: { maxOutputTokens, temperature, topP: 0.8 },
+                  });
+                  const backupChat = backupModel.startChat({
+                    history: currentHistory.map((h) => ({
+                      role: h.role as "user" | "model",
+                      parts: h.parts.map((p) => ({ text: p.text })),
+                    })),
+                  });
+                  const res = await backupChat.sendMessage(msg);
+                  const text = res.response.text();
+
+                  // Keep local history synchronized
+                  currentHistory.push(
+                    { role: "user", parts: [{ text: msg }] },
+                    { role: "model", parts: [{ text }] }
+                  );
+
+                  activeChat = backupChat;
+
+                  return {
+                    response: {
+                      candidates: [{ content: { parts: [{ text }] } }],
+                      usageMetadata: {
+                        totalTokenCount: res.response.usageMetadata?.totalTokenCount,
+                      },
+                    },
+                  };
+                } catch (backupErr) {
+                  console.error("All generative model endpoints failed.", backupErr);
+                  throw backupErr;
+                }
+              }
+            }
           },
         };
       },
