@@ -3,7 +3,7 @@
 # Usage: bash deploy-now.sh
 set -e
 
-PROJECT_ID="worldcup-fan-agent"
+PROJECT_ID="worldcup-fan-agent-498916"
 REGION="us-central1"
 SERVICE_NAME="worldcup-fan-agent"
 IMAGE="gcr.io/$PROJECT_ID/$SERVICE_NAME:latest"
