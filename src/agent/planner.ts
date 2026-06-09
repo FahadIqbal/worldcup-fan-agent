@@ -5,8 +5,10 @@ import { VertexAI } from "@google-cloud/vertexai";
 import { tavilySearch } from "@/tools/tavily";
 import { neonQuery, neonUpsert } from "@/tools/neon";
 import { browserScrape } from "@/tools/browserbase";
+import { phoenixSelfReflect } from "@/tools/phoenix";
 import { detectCompoundGoal, buildSkillPrompt, type Skill, type SkillId } from "./skills";
 import type { UserLocation } from "@/types/location";
+import { tracer, A, SpanStatusCode } from "@/lib/tracer";
 import {
   createSession, getSession, appendMessage, logToolCall,
   updateSessionContext, persistRunLog, loadUserContext,
@@ -35,21 +37,73 @@ export interface AgentResponse {
   tokensUsed: number;
 }
 
-// ─── Vertex AI setup ───────────────────────────────────────────────────────
+// ─── Model setup (Gemini API key → Vertex AI fallback) ─────────────────────
+// Prefer the direct Gemini API (GEMINI_API_KEY) — it works without Vertex AI
+// Publisher Model access being manually enabled in the Console.
+// Falls back to Vertex AI when only GCP ADC is available.
 
-function getModel() {
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Thin adapter so the rest of the code can call a single interface
+interface GeminiChat {
+  sendMessage(msg: string): Promise<{
+    response: {
+      candidates?: Array<{ content: { parts: Array<{ text?: string }> } }>;
+      usageMetadata?: { totalTokenCount?: number };
+    };
+  }>;
+}
+
+function getModel(): {
+  startChat(opts: { history: Array<{ role: string; parts: Array<{ text: string }> }> }): GeminiChat;
+} {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const modelName = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+  const maxOutputTokens = parseInt(process.env.GEMINI_MAX_OUTPUT_TOKENS ?? "4096");
+  const temperature = parseFloat(process.env.GEMINI_TEMPERATURE ?? "0.3");
+
+  if (apiKey) {
+    // ── Google AI Studio / Gemini API ──────────────────────────────────────
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const genModel = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: { maxOutputTokens, temperature, topP: 0.8 },
+    });
+    return {
+      startChat(opts) {
+        const chat = genModel.startChat({
+          history: opts.history.map((h) => ({
+            role: h.role as "user" | "model",
+            parts: h.parts.map((p) => ({ text: p.text })),
+          })),
+        });
+        return {
+          async sendMessage(msg: string) {
+            const res = await chat.sendMessage(msg);
+            const text = res.response.text();
+            return {
+              response: {
+                candidates: [{ content: { parts: [{ text }] } }],
+                usageMetadata: {
+                  totalTokenCount: res.response.usageMetadata?.totalTokenCount,
+                },
+              },
+            };
+          },
+        };
+      },
+    };
+  }
+
+  // ── Vertex AI (requires Publisher Model access in GCP Console) ────────────
   const vertex = new VertexAI({
     project: process.env.GCP_PROJECT_ID!,
     location: process.env.GCP_REGION ?? "us-central1",
   });
   return vertex.getGenerativeModel({
-    model: process.env.GEMINI_MODEL ?? "gemini-1.5-pro-002",
-    generationConfig: {
-      maxOutputTokens: parseInt(process.env.GEMINI_MAX_OUTPUT_TOKENS ?? "4096"),
-      temperature: parseFloat(process.env.GEMINI_TEMPERATURE ?? "0.3"),
-      topP: 0.8,
-    },
-  });
+    model: modelName,
+    generationConfig: { maxOutputTokens, temperature, topP: 0.8 },
+  }) as ReturnType<typeof getModel>;
 }
 
 // ─── Main entry point ──────────────────────────────────────────────────────
@@ -109,6 +163,18 @@ export async function runFanAgent(
 
   let result: { text: string; toolsUsed: string[]; tokensUsed: number };
 
+  // ── Arize Phoenix: AGENT span wraps the entire session turn ──────────────
+  const agentSpan = tracer.startSpan("agent.run", {
+    attributes: {
+      [A.SPAN_KIND]: "AGENT",
+      [A.SESSION_ID]: state.sessionId,
+      [A.USER_ID]: req.userId,
+      [A.SKILL_ID]: primarySkill.id,
+      [A.SKILL_NAME]: primarySkill.name,
+      [A.LLM_INPUT]: req.message.slice(0, 2000),
+    },
+  });
+
   try {
     result = await agentLoop({
       state,
@@ -129,16 +195,53 @@ export async function runFanAgent(
       result.toolsUsed.push(...secondary.toolsUsed);
       result.tokensUsed += secondary.tokensUsed;
     }
+
+    agentSpan.setAttributes({
+      [A.LLM_OUTPUT]: result.text.slice(0, 2000),
+      [A.LLM_TOKENS_TOTAL]: result.tokensUsed,
+      "agent.tools_used": result.toolsUsed.join(","),
+    });
+    agentSpan.setStatus({ code: SpanStatusCode.OK });
   } catch (err) {
     const errStr = String(err);
-    // Vertex AI not authenticated locally — answer with Tavily live search instead
-    if (errStr.includes("GoogleAuthError") || errStr.includes("Unable to authenticate") || !process.env.GCP_PROJECT_ID) {
+    agentSpan.setStatus({ code: SpanStatusCode.ERROR, message: errStr });
+
+    // Fall back to Tavily live search for any LLM-layer failure:
+    // - Missing / invalid credentials
+    // - Vertex AI publisher model not enabled (404)
+    // - API quota exhausted / rate-limited (429) ← free-tier daily cap
+    // - Any other upstream Gemini error
+    // This keeps users getting real answers instead of error messages.
+    const isMissingCreds =
+      errStr.includes("GoogleAuthError") ||
+      errStr.includes("Unable to authenticate") ||
+      !process.env.GCP_PROJECT_ID;
+    const isModelNotFound =
+      errStr.includes("NOT_FOUND") ||
+      errStr.includes("was not found") ||
+      errStr.includes("does not have access to it");
+    const isQuotaExhausted =
+      errStr.includes("429") ||
+      errStr.includes("Too Many Requests") ||
+      errStr.includes("quota") ||
+      errStr.includes("RESOURCE_EXHAUSTED") ||
+      errStr.includes("rate limit") ||
+      errStr.includes("exceeded your current quota");
+
+    if (isMissingCreds || isModelNotFound || isQuotaExhausted) {
+      // Tag the agent span so Phoenix shows why we fell back
+      agentSpan.setAttribute("fallback.reason",
+        isQuotaExhausted ? "quota_exhausted" :
+        isModelNotFound  ? "model_not_found" : "missing_creds"
+      );
       result = await tavilyFallbackResponse(primarySkill, req.message, req.userLocation, onToken);
     } else {
       const msg = `I ran into an issue: ${errStr}\n\nPlease try again.`;
       if (onToken) await onToken(msg);
       result = { text: msg, toolsUsed: [], tokensUsed: 0 };
     }
+  } finally {
+    agentSpan.end();
   }
 
   // Persist run log to Neon (non-fatal if it fails)
@@ -187,9 +290,37 @@ async function agentLoop(params: {
   let nextUserMsg = currentUserMessage;
 
   for (let round = 0; round < skill.maxRounds; round++) {
-    const response = await chat.sendMessage(nextUserMsg);
+    // ── Arize Phoenix: LLM span per Gemini call ──────────────────────────
+    const llmSpan = tracer.startSpan(`llm.gemini.round_${round}`, {
+      attributes: {
+        [A.SPAN_KIND]: "LLM",
+        [A.LLM_MODEL]: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
+        [A.LLM_SYSTEM]: "Google Gemini",
+        [A.LLM_INPUT]: nextUserMsg.slice(0, 2000),
+        "llm.round": round,
+        "skill.id": skill.id,
+      },
+    });
+
+    let response: Awaited<ReturnType<typeof chat.sendMessage>>;
+    try {
+      response = await chat.sendMessage(nextUserMsg);
+      llmSpan.setStatus({ code: SpanStatusCode.OK });
+    } catch (err) {
+      llmSpan.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+      llmSpan.end();
+      throw err;
+    }
+
     const text = response.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    totalTokens += response.response.usageMetadata?.totalTokenCount ?? 0;
+    const roundTokens = response.response.usageMetadata?.totalTokenCount ?? 0;
+    totalTokens += roundTokens;
+
+    llmSpan.setAttributes({
+      [A.LLM_OUTPUT]: text.slice(0, 2000),
+      [A.LLM_TOKENS_TOTAL]: roundTokens,
+    });
+    llmSpan.end();
 
     if (!text) break;
 
@@ -217,7 +348,7 @@ async function agentLoop(params: {
     const readSettled = await Promise.allSettled(
       readCalls.map(async (call) => {
         const t0 = Date.now();
-        const res = await executeTool(call);
+        const res = await executeTracedTool(call);
         logToolCall(state.sessionId, {
           name: call.name, args: call.args, result: res, durationMs: Date.now() - t0,
         });
@@ -231,7 +362,7 @@ async function agentLoop(params: {
 
     for (const call of writeCalls) {
       const t0 = Date.now();
-      const res = await executeTool(call);
+      const res = await executeTracedTool(call);
       logToolCall(state.sessionId, {
         name: call.name, args: call.args, result: res, durationMs: Date.now() - t0,
       });
@@ -250,25 +381,53 @@ async function agentLoop(params: {
 
 // ─── Tool executor ─────────────────────────────────────────────────────────
 
+// ── Plain tool executor (no tracing) ─────────────────────────────────────
+
 async function executeTool(call: ParsedToolCall): Promise<unknown> {
+  switch (call.name) {
+    case "tavily_search":
+      return await tavilySearch(String(call.args.query ?? ""));
+    case "neon_query":
+      return await neonQuery(String(call.args.sql ?? "SELECT 1"));
+    case "neon_upsert":
+      return await neonUpsert(
+        String(call.args.table ?? ""),
+        (call.args.data as Record<string, unknown>) ?? {}
+      );
+    case "browser_scrape":
+      return await browserScrape(String(call.args.url ?? ""));
+    case "phoenix_self_reflect":
+      // Arize Phoenix self-improvement: agent reads its own trace data
+      return await phoenixSelfReflect(String(call.args.query ?? "performance summary"));
+    default:
+      return { error: `Unknown tool: ${call.name}` };
+  }
+}
+
+// ── Traced tool executor: wraps executeTool with a Phoenix TOOL span ──────
+// Each tool call creates its own child span → visible in Phoenix trace tree.
+
+async function executeTracedTool(call: ParsedToolCall): Promise<unknown> {
+  const span = tracer.startSpan(`tool.${call.name}`, {
+    attributes: {
+      [A.SPAN_KIND]: "TOOL",
+      [A.TOOL_NAME]: call.name,
+      [A.TOOL_INPUT]: JSON.stringify(call.args).slice(0, 1000),
+    },
+  });
+
   try {
-    switch (call.name) {
-      case "tavily_search":
-        return await tavilySearch(String(call.args.query ?? ""));
-      case "neon_query":
-        return await neonQuery(String(call.args.sql ?? "SELECT 1"));
-      case "neon_upsert":
-        return await neonUpsert(
-          String(call.args.table ?? ""),
-          (call.args.data as Record<string, unknown>) ?? {}
-        );
-      case "browser_scrape":
-        return await browserScrape(String(call.args.url ?? ""));
-      default:
-        return { error: `Unknown tool: ${call.name}` };
-    }
+    const result = await executeTool(call);
+    span.setAttributes({
+      [A.TOOL_OUTPUT]: JSON.stringify(result).slice(0, 2000),
+    });
+    span.setStatus({ code: SpanStatusCode.OK });
+    return result;
   } catch (err) {
+    span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
     return { error: String(err) };
+  } finally {
+    span.end();
   }
 }
 
@@ -399,7 +558,7 @@ async function tavilyFallbackResponse(
       text += "---\n\n";
     }
 
-    text += `*Powered by Tavily live search · Connect Google Cloud credentials for the full Gemini 1.5 Pro agentic experience.*`;
+    text += `*Powered by Tavily live search · [Enable billing on your Gemini API key](https://aistudio.google.com/app/apikey) to unlock the full Gemini 2.0 Flash agentic experience.*`;
   }
 
   if (onToken) {

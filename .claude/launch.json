@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "worldcup-fan-agent",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "/Users/fahadiqbal/.nvm/versions/node/v20.19.4/bin/npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
       "autoPort": false
