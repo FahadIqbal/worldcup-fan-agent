@@ -90,8 +90,45 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+// Helper to parse tools out of streamed text and return cleaned markdown
+function parseTextAndTools(text: string): { cleanText: string; activeTools: Array<{ name: string; args: any }> } {
+  const activeTools: Array<{ name: string; args: any }> = [];
+  
+  // Match complete JSON objects
+  const pattern = /\{\s*"tool"\s*:\s*"([^"]+)"\s*,\s*"args"\s*:\s*(\{(?:[^{}]|\{[^{}]*\})*\})\s*\}/g;
+  
+  let cleanText = text.replace(pattern, (match, name, argsStr) => {
+    try {
+      const args = JSON.parse(argsStr);
+      activeTools.push({ name, args });
+    } catch {
+      activeTools.push({ name, args: {} });
+    }
+    return "";
+  });
+
+  // Strip any trailing partial JSON block starting with {"tool"
+  const partialIndex = cleanText.lastIndexOf('{"tool"');
+  if (partialIndex !== -1) {
+    const fragment = cleanText.slice(partialIndex);
+    if (!fragment.includes('}')) {
+      cleanText = cleanText.slice(0, partialIndex);
+    }
+  }
+
+  // Also strip any dangling open braces at the end
+  cleanText = cleanText.trimEnd();
+  if (cleanText.endsWith('{') || cleanText.endsWith('{"') || cleanText.endsWith('{"t')) {
+    cleanText = cleanText.replace(/\{"?t?"?$/, "");
+  }
+
+  return { cleanText, activeTools };
+}
+
 function MessageBubble({ msg }: { msg: Message }) {
   const isAgent = msg.role === "agent";
+  const { cleanText, activeTools } = parseTextAndTools(msg.content);
+
   return (
     <div style={{
       display: "flex", flexDirection: isAgent ? "row" : "row-reverse",
@@ -148,34 +185,60 @@ function MessageBubble({ msg }: { msg: Message }) {
               opacity: 0.5,
             }} />
           )}
-          {msg.isStreaming ? <TypingIndicator /> : isAgent ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                h1: ({ children }) => <h1 style={{ fontSize: 16, fontWeight: 700, color: "var(--accent)", margin: "6px 0 10px", borderBottom: "1px solid var(--accent-border)", paddingBottom: 7, letterSpacing: "-0.3px" }}>{children}</h1>,
-                h2: ({ children }) => <h2 style={{ fontSize: 14.5, fontWeight: 600, color: "var(--accent)", margin: "12px 0 6px", letterSpacing: "-0.2px" }}>{children}</h2>,
-                h3: ({ children }) => <h3 style={{ fontSize: 13.5, fontWeight: 600, color: "var(--blue, #38bdf8)", margin: "10px 0 5px" }}>{children}</h3>,
-                p: ({ children }) => <p style={{ margin: "0 0 8px", lineHeight: 1.7 }}>{children}</p>,
-                strong: ({ children }) => <strong style={{ color: "var(--text)", fontWeight: 600 }}>{children}</strong>,
-                em: ({ children }) => <em style={{ color: "var(--text2)", fontStyle: "italic" }}>{children}</em>,
-                a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "var(--blue)", textDecoration: "none", borderBottom: "1px solid var(--blue-dim, #38bdf820)" }}>{children}</a>,
-                blockquote: ({ children }) => <blockquote style={{ borderLeft: "3px solid var(--accent-border)", paddingLeft: 12, margin: "10px 0", color: "var(--text2)", fontStyle: "italic" }}>{children}</blockquote>,
-                hr: () => <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "12px 0" }} />,
-                ul: ({ children }) => <ul style={{ paddingLeft: 20, margin: "4px 0 10px" }}>{children}</ul>,
-                ol: ({ children }) => <ol style={{ paddingLeft: 20, margin: "4px 0 10px" }}>{children}</ol>,
-                li: ({ children }) => <li style={{ marginBottom: 4, lineHeight: 1.6 }}>{children}</li>,
-                table: ({ children }) => <div style={{ overflowX: "auto", margin: "8px 0" }}><table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>{children}</table></div>,
-                th: ({ children }) => <th style={{ padding: "6px 10px", textAlign: "left", background: "var(--surface2)", color: "var(--text2)", fontWeight: 600, fontSize: 11, letterSpacing: "0.06em", borderBottom: "1px solid var(--border2)" }}>{children}</th>,
-                td: ({ children }) => <td style={{ padding: "6px 10px", borderBottom: "1px solid var(--border)", color: "var(--text)" }}>{children}</td>,
-                code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => inline
-                  ? <code style={{ background: "var(--bg, #060b14)", border: "1px solid var(--border2)", borderRadius: 4, padding: "1px 6px", fontSize: 12, color: "var(--accent)", fontFamily: "var(--font-mono)" }}>{children}</code>
-                  : <pre style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", overflowX: "auto", fontSize: 12, margin: "8px 0", fontFamily: "var(--font-mono)" }}><code style={{ color: "var(--text2)" }}>{children}</code></pre>,
-              }}
-            >
-              {msg.content}
-            </ReactMarkdown>
+          {msg.isStreaming && cleanText === "" ? <TypingIndicator /> : isAgent ? (
+            <>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: ({ children }) => <h1 style={{ fontSize: 16, fontWeight: 700, color: "var(--accent)", margin: "6px 0 10px", borderBottom: "1px solid var(--accent-border)", paddingBottom: 7, letterSpacing: "-0.3px" }}>{children}</h1>,
+                  h2: ({ children }) => <h2 style={{ fontSize: 14.5, fontWeight: 600, color: "var(--accent)", margin: "12px 0 6px", letterSpacing: "-0.2px" }}>{children}</h2>,
+                  h3: ({ children }) => <h3 style={{ fontSize: 13.5, fontWeight: 600, color: "var(--blue, #38bdf8)", margin: "10px 0 5px" }}>{children}</h3>,
+                  p: ({ children }) => <p style={{ margin: "0 0 8px", lineHeight: 1.7 }}>{children}</p>,
+                  strong: ({ children }) => <strong style={{ color: "var(--text)", fontWeight: 600 }}>{children}</strong>,
+                  em: ({ children }) => <em style={{ color: "var(--text2)", fontStyle: "italic" }}>{children}</em>,
+                  a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "var(--blue)", textDecoration: "none", borderBottom: "1px solid var(--blue-dim, #38bdf820)" }}>{children}</a>,
+                  blockquote: ({ children }) => <blockquote style={{ borderLeft: "3px solid var(--accent-border)", paddingLeft: 12, margin: "10px 0", color: "var(--text2)", fontStyle: "italic" }}>{children}</blockquote>,
+                  hr: () => <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "12px 0" }} />,
+                  ul: ({ children }) => <ul style={{ paddingLeft: 20, margin: "4px 0 10px" }}>{children}</ul>,
+                  ol: ({ children }) => <ol style={{ paddingLeft: 20, margin: "4px 0 10px" }}>{children}</ol>,
+                  li: ({ children }) => <li style={{ marginBottom: 4, lineHeight: 1.6 }}>{children}</li>,
+                  table: ({ children }) => <div style={{ overflowX: "auto", margin: "8px 0" }}><table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>{children}</table></div>,
+                  th: ({ children }) => <th style={{ padding: "6px 10px", textAlign: "left", background: "var(--surface2)", color: "var(--text2)", fontWeight: 600, fontSize: 11, letterSpacing: "0.06em", borderBottom: "1px solid var(--border2)" }}>{children}</th>,
+                  td: ({ children }) => <td style={{ padding: "6px 10px", borderBottom: "1px solid var(--border)", color: "var(--text)" }}>{children}</td>,
+                  code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => inline
+                    ? <code style={{ background: "var(--bg, #060b14)", border: "1px solid var(--border2)", borderRadius: 4, padding: "1px 6px", fontSize: 12, color: "var(--accent)", fontFamily: "var(--font-mono)" }}>{children}</code>
+                    : <pre style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 14px", overflowX: "auto", fontSize: 12, margin: "8px 0", fontFamily: "var(--font-mono)" }}><code style={{ color: "var(--text2)" }}>{children}</code></pre>,
+                }}
+              >
+                {cleanText}
+              </ReactMarkdown>
+
+              {/* Show active loading tools if still streaming */}
+              {msg.isStreaming && activeTools.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                  {activeTools.map((t, idx) => (
+                    <div key={idx} style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      color: "var(--accent, #00c896)", fontSize: 11.5,
+                      fontFamily: "var(--font-mono, monospace)"
+                    }}>
+                      <span style={{
+                        display: "inline-block",
+                        width: 8, height: 8, borderRadius: "50%",
+                        background: "var(--accent, #00c896)",
+                        boxShadow: "0 0 8px var(--accent)",
+                        animation: "pulse 1.5s infinite alternate"
+                      }} />
+                      <span>Calling <strong>{t.name}</strong>...</span>
+                      {t.args?.query && <span style={{ color: "var(--text3)", fontSize: 11 }}>({t.args.query})</span>}
+                      {t.args?.table && <span style={{ color: "var(--text3)", fontSize: 11 }}>({t.args.table})</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           ) : (
-            <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
+            <span style={{ whiteSpace: "pre-wrap" }}>{cleanText}</span>
           )}
         </div>
 
@@ -199,8 +262,8 @@ function MessageBubble({ msg }: { msg: Message }) {
           <span style={{ fontSize: 10, color: "var(--text4)", fontFamily: "var(--font-mono)" }}>
             {formatTime(msg.timestamp)}
           </span>
-          {isAgent && !msg.isStreaming && msg.content.length > 20 && (
-            <CopyButton text={msg.content} />
+          {isAgent && !msg.isStreaming && cleanText.length > 20 && (
+            <CopyButton text={cleanText} />
           )}
         </div>
       </div>

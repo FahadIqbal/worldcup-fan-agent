@@ -378,13 +378,18 @@ async function agentLoop(params: {
     const roundTokens = response.response.usageMetadata?.totalTokenCount ?? 0;
     totalTokens += roundTokens;
 
+    console.log(`[agentLoop] Round ${round} text:`, text.slice(0, 200));
+
     llmSpan.setAttributes({
       [A.LLM_OUTPUT]: text.slice(0, 2000),
       [A.LLM_TOKENS_TOTAL]: roundTokens,
     });
     llmSpan.end();
 
-    if (!text) break;
+    if (!text) {
+      console.log(`[agentLoop] text is empty on round ${round}, breaking`);
+      break;
+    }
 
     // Stream the response tokens
     if (onToken) {
@@ -435,7 +440,13 @@ async function agentLoop(params: {
     // Feed results back; next loop iteration sends them as the user turn
     nextUserMsg = `Tool results:\n${JSON.stringify(toolResults, null, 2)}\n\nPlease continue with your response.`;
 
-    if (round === skill.maxRounds - 1) finalText = text; // fallback
+    if (round === skill.maxRounds - 1) {
+      if (toolCalls.length > 0) {
+        finalText = text + "\n\n*I gathered a lot of data but couldn't quite finish formatting the final plan. Let me know what specific detail you need next!*";
+      } else {
+        finalText = text;
+      }
+    }
   }
 
   return { text: finalText, toolsUsed: Array.from(toolsUsed), tokensUsed: totalTokens };
@@ -620,7 +631,7 @@ async function tavilyFallbackResponse(
       text += "---\n\n";
     }
 
-    text += `*Powered by Tavily live search · [Enable billing on your Gemini API key](https://aistudio.google.com/app/apikey) to unlock the full Gemini 2.0 Flash agentic experience.*`;
+    text += `*Powered by Tavily live search*`;
   }
 
   if (onToken) {
