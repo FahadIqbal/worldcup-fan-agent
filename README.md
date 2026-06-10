@@ -109,6 +109,7 @@ psql $DATABASE_URL < ../db/schema.sql
 ```bash
 npm run dev
 # Open http://localhost:3000
+https://worldcup-fan-agent-g2orrofada-uc.a.run.app/
 ```
 
 ---
@@ -180,7 +181,7 @@ gcloud run deploy worldcup-agent --image gcr.io/PROJECT/worldcup-agent --region 
 
 ## 📹 Demo Video
 
-[Link to 3-minute demo on YouTube/Loom]
+https://youtu.be/mmfCvvb_Qzk
 
 ---
 
