@@ -5,9 +5,9 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "node init && next dev",
+    "build": "node init && next build",
+    "start": "node init && next start",
     "lint": "next lint",
     "db:migrate": "psql \"$NEON_DATABASE_URL\" -f db/migrate.sql",
     "db:reset": "psql \"$NEON_DATABASE_URL\" -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' && npm run db:migrate",
